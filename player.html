@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Video Player</title>
+  <style>
+    body { margin: 0; background: #111; display: flex; align-items: center; justify-content: center; height: 100vh; }
+    video { width: 90vw; height: 80vh; background: #000; }
+  </style>
+</head>
+<body>
+  <video id="video" controls autoplay></video>
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const filePath = urlParams.get('file');
+    if (filePath) {
+      document.getElementById('video').src = decodeURIComponent(filePath);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Video By Video</title>
+  <style>
+    body { font-family: sans-serif; margin: 2em; }
+    #screenshots {
+      margin-top: 1em;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+      gap: 1em;
+      width: 100%;
+    }
+    #screenshots img {
+      width: 100%;
+      height: auto;
+      border: 1px solid #ccc;
+      display: block;
+      margin: 0;
+      object-fit: cover;
+    }
+    #rename-section { margin-top: 2em; }
+    #file-nav { margin-top: 1em; }
+    #baseNameDialog { margin-bottom: 1em; margin-top: 2em;}
+    #rename-row { display: flex; gap: 0.5em; }
+    #newName { flex: 1 1 auto; width: 100%; box-sizing: border-box; }
+    #renameBtn { flex: 0 0 auto; white-space: nowrap; }
+    #videoPath { font-size: 0.9em; color: #555; margin-top: 1em; }
+    .subtle { color: #666; font-size: 0.9em; margin-left: 1em; }
+  </style>
+</head>
+<body>
+  
+  <button id="openBtn">Open Video Files</button><span class="subtle">(Select multiple files for maximum efficiency!)</span>
+  <div id="file-nav" style="display:none;">
+    <span id="fileIndex"></span>
+    <button id="prevBtn">Prev</button>
+    <button id="nextBtn">Next/Skip</button>
+  </div>
+  <div id="videoPath"></div>
+  <div id="baseNameDialog" style="display:none;">
+    <label>Filename Base (Optional): <input id="baseNameInput" /></label>
+    <button id="setBaseNameBtn">Update</button>
+  </div>
+  <div id="screenshots"></div>
+  <div id="rename-section" style="display:none;">
+    <div id="rename-row">
+      <input id="newName" placeholder="New file name (no extension)" />
+      <button id="renameBtn">Rename Video</button>
+      <button id="playBtn">Play in VLC</button>
+    </div>
+    <div id="renameResult"></div>
+  </div>
+  <script src="renderer.js"></script>
+</body>
+</html>
