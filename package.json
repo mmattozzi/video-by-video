@@ -1,5 +1,6 @@
 {
-  "name": "video-thingy",
+  "name": "video-by-video",
+  "productName": "VideoByVideo",
   "version": "1.0.0",
   "description": "Electron app to extract screenshots from a video and rename the file.",
   "main": "main.js",
