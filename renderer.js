@@ -47,7 +47,7 @@ function updateUI() {
     renameSection.style.display = 'block';
     // Pre-populate rename input
     const origName = videoPath.split(/[\/]/).pop().replace(/\.[^/.]+$/, "");
-    newNameInput.value = baseName ? `${baseName}_${currentIndex + 1}` : origName;
+    newNameInput.value = baseName ? `${baseName}` : origName;
     renameResult.textContent = '';
   });
 }
@@ -65,6 +65,7 @@ setBaseNameBtn.onclick = () => {
   if (videoFiles.length > 0) updateUI();
 };
 
+
 renameBtn.onclick = async () => {
   const newName = newNameInput.value.trim();
   if (!newName || !videoFiles[currentIndex]) return;
@@ -81,6 +82,14 @@ renameBtn.onclick = async () => {
     renameResult.textContent = 'Rename failed.';
   }
 };
+
+// Pressing Enter in the rename input triggers the rename button
+newNameInput.addEventListener('keydown', function(event) {
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    renameBtn.click();
+  }
+});
 
 nextBtn.onclick = () => {
   if (currentIndex < videoFiles.length - 1) {
