@@ -14,7 +14,14 @@ const fileIndexSpan = document.getElementById('fileIndex');
 const prevBtn = document.getElementById('prevBtn');
 const nextBtn = document.getElementById('nextBtn');
 const baseNameDialog = document.getElementById('baseNameDialog');
+
 const playBtn = document.getElementById('playBtn');
+const moreScreenshotsBtn = document.getElementById('moreScreenshotsBtn');
+if (moreScreenshotsBtn) {
+  moreScreenshotsBtn.style.display = 'none';
+}
+
+let screenshotsOffset = 0; // in seconds
 
 let videoFiles = [];
 let currentIndex = 0;
@@ -27,15 +34,17 @@ function updateUI() {
     screenshotsDiv.innerHTML = '';
     renameSection.style.display = 'none';
     fileNav.style.display = 'none';
+    if (moreScreenshotsBtn) moreScreenshotsBtn.style.display = 'none';
     return;
   }
-  baseNameDialog.style.display = 'block';
+  baseNameDialog.style.display = 'flex';
   fileNav.style.display = 'block';
   fileIndexSpan.textContent = `File ${currentIndex + 1} of ${videoFiles.length}`;
   const videoPath = videoFiles[currentIndex];
   videoPathDiv.textContent = videoPath;
   screenshotsDiv.innerHTML = 'Extracting screenshots...';
-  ipcRenderer.invoke('extract-screenshots', videoPath).then(screenshots => {
+  if (moreScreenshotsBtn) moreScreenshotsBtn.style.display = '';
+  ipcRenderer.invoke('extract-screenshots', videoPath, screenshotsOffset).then(screenshots => {
     screenshotsDiv.innerHTML = '';
     const cacheBuster = Date.now();
     screenshots.forEach((src, idx) => {
@@ -52,18 +61,28 @@ function updateUI() {
   });
 }
 
+
 openBtn.onclick = async () => {
   const files = await ipcRenderer.invoke('select-videos');
   if (!files || files.length === 0) return;
   videoFiles = files;
   currentIndex = 0;
+  screenshotsOffset = 0;
   updateUI();
 };
+
 
 setBaseNameBtn.onclick = () => {
   baseName = baseNameInput.value.trim();
   if (videoFiles.length > 0) updateUI();
 };
+
+if (moreScreenshotsBtn) {
+  moreScreenshotsBtn.onclick = () => {
+    screenshotsOffset += 30; // 8 screenshots, 30 seconds each
+    updateUI();
+  };
+}
 
 
 renameBtn.onclick = async () => {
@@ -91,16 +110,20 @@ newNameInput.addEventListener('keydown', function(event) {
   }
 });
 
+
 nextBtn.onclick = () => {
   if (currentIndex < videoFiles.length - 1) {
     currentIndex++;
+    screenshotsOffset = 0;
     updateUI();
   }
 };
 
+
 prevBtn.onclick = () => {
   if (currentIndex > 0) {
     currentIndex--;
+    screenshotsOffset = 0;
     updateUI();
   }
 };

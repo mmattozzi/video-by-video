@@ -51,7 +51,7 @@ ipcMain.handle('select-videos', async () => {
   return filePaths;
 });
 
-ipcMain.handle('extract-screenshots', async (event, videoPath) => {
+ipcMain.handle('extract-screenshots', async (event, videoPath, offset = 0) => {
   return new Promise((resolve, reject) => {
     ffmpeg.ffprobe(videoPath, (err, metadata) => {
       if (err) return reject(err);
@@ -60,7 +60,11 @@ ipcMain.handle('extract-screenshots', async (event, videoPath) => {
       const interval = duration / (count + 1);
       const screenshotsDir = path.join(app.getPath('temp'), 'video-thingy-screens');
       if (!fs.existsSync(screenshotsDir)) fs.mkdirSync(screenshotsDir);
-      const timestamps = Array.from({ length: count }, (_, i) => (interval * (i + 1)));
+      // Start timestamps at offset, then add interval
+      let start = offset;
+      let timestamps = Array.from({ length: count }, (_, i) => start + interval * (i + 1));
+      // Clamp timestamps to duration
+      timestamps = timestamps.map(ts => Math.min(ts, duration - 1));
       const files = [];
       let done = 0;
       timestamps.forEach((ts, i) => {
@@ -70,7 +74,7 @@ ipcMain.handle('extract-screenshots', async (event, videoPath) => {
             timestamps: [ts],
             filename: `screenshot${i + 1}.png`,
             folder: screenshotsDir,
-            size: '320x?' // keep aspect ratio
+            size: '320x?'
           })
           .on('end', () => {
             files[i] = outPath;
