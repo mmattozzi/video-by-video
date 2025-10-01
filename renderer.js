@@ -92,6 +92,7 @@ renameBtn.onclick = async () => {
   if (newPath) {
     renameResult.textContent = 'Renamed to: ' + newPath;
     videoFiles[currentIndex] = newPath;
+    screenshotsOffset = 0;
     // Move to next file automatically if not last
     if (currentIndex < videoFiles.length - 1) {
       currentIndex++;
