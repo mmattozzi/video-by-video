@@ -12,9 +12,10 @@ This Electron app lets you:
 - [VLC](https://www.videolan.org/vlc/) if you want to play video from inside the app
 
 ## Usage
-1. Run the app: `npm start`
-2. Click "Open Video File" and select one or many videos
-3. View screenshots and rename the file
+1. Build with `npm install`
+2. Run the app: `npm start`
+3. Click "Open Video File" and select one or many videos
+4. View screenshots and rename the file
 
 ## Development
 - Electron
