@@ -87,6 +87,36 @@ ipcMain.handle('extract-screenshots', async (event, videoPath, offset = 0) => {
   });
 });
 
+// IPC handler to get video duration and resolution
+ipcMain.handle('get-video-meta', async (event, videoPath) => {
+  return new Promise((resolve, reject) => {
+    ffmpeg.ffprobe(videoPath, (err, metadata) => {
+      if (err || !metadata) return resolve({});
+      // Duration in seconds
+      let durationSec = metadata.format.duration || 0;
+      // Format duration as hh:mm:ss or mm:ss if hours is zero
+      const h = Math.floor(durationSec / 3600);
+      const m = Math.floor((durationSec % 3600) / 60);
+      const s = Math.floor(durationSec % 60);
+      let durationStr;
+      if (h > 0) {
+        durationStr = `${h}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+      } else {
+        durationStr = `${m}:${s.toString().padStart(2, '0')}`;
+      }
+      // Get resolution from first video stream
+      let res = '';
+      if (metadata.streams && metadata.streams.length) {
+        const vStream = metadata.streams.find(st => st.codec_type === 'video');
+        if (vStream && vStream.width && vStream.height) {
+          res = `${vStream.width}x${vStream.height}`;
+        }
+      }
+      resolve({ duration: durationStr, resolution: res });
+    });
+  });
+});
+
 ipcMain.handle('rename-video', async (event, oldPath, newName) => {
   const dir = path.dirname(oldPath);
   const ext = path.extname(oldPath);

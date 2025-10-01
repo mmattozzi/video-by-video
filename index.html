@@ -28,6 +28,7 @@
     #newName { flex: 1 1 auto; width: 100%; box-sizing: border-box; }
     #renameBtn { flex: 0 0 auto; white-space: nowrap; }
     #videoPath { font-size: 0.9em; color: #555; margin-top: 1em; }
+    #videoMeta { font-size: 0.8em; color: #666; margin-top: 1em; }
     .subtle { color: #666; font-size: 0.9em; margin-left: 1em; }
   </style>
 </head>
@@ -39,7 +40,10 @@
     <button id="prevBtn">Prev</button>
     <button id="nextBtn">Next/Skip</button>
   </div>
-  <div id="videoPath"></div>
+  <div style="display: flex; align-items: center; gap: 1em;">
+    <div id="videoPath"></div>
+    <div id="videoMeta"></div>
+  </div>
   <div id="baseNameDialog" style="display:none; display: flex; align-items: center; gap: 0.5em;">
     <label>Filename Base (Optional): <input id="baseNameInput" /></label>
     <button id="setBaseNameBtn">Update</button>

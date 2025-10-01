@@ -3,6 +3,7 @@ const { ipcRenderer } = require('electron');
 const openBtn = document.getElementById('openBtn');
 const videoPathDiv = document.getElementById('videoPath');
 const screenshotsDiv = document.getElementById('screenshots');
+const videoMetaDiv = document.getElementById('videoMeta');
 const renameSection = document.getElementById('rename-section');
 const newNameInput = document.getElementById('newName');
 const renameBtn = document.getElementById('renameBtn');
@@ -34,6 +35,7 @@ function updateUI() {
     screenshotsDiv.innerHTML = '';
     renameSection.style.display = 'none';
     fileNav.style.display = 'none';
+    if (videoMetaDiv) videoMetaDiv.textContent = '';
     if (moreScreenshotsBtn) moreScreenshotsBtn.style.display = 'none';
     return;
   }
@@ -44,6 +46,18 @@ function updateUI() {
   videoPathDiv.textContent = videoPath;
   screenshotsDiv.innerHTML = 'Extracting screenshots...';
   if (moreScreenshotsBtn) moreScreenshotsBtn.style.display = '';
+
+  // Get video metadata and display
+  ipcRenderer.invoke('get-video-meta', videoPath).then(meta => {
+    if (videoMetaDiv) {
+      if (meta && meta.duration && meta.resolution) {
+        videoMetaDiv.textContent = `(${meta.duration} | ${meta.resolution})`;
+      } else {
+        videoMetaDiv.textContent = '';
+      }
+    }
+  });
+
   ipcRenderer.invoke('extract-screenshots', videoPath, screenshotsOffset).then(screenshots => {
     screenshotsDiv.innerHTML = '';
     const cacheBuster = Date.now();
@@ -92,10 +106,11 @@ renameBtn.onclick = async () => {
   if (newPath) {
     renameResult.textContent = 'Renamed to: ' + newPath;
     videoFiles[currentIndex] = newPath;
-    screenshotsOffset = 0;
+    screenshotsOffset = 0;    
     // Move to next file automatically if not last
     if (currentIndex < videoFiles.length - 1) {
       currentIndex++;
+      videoMetaDiv.textContent = '';
       updateUI();
     }
   } else {
@@ -116,6 +131,7 @@ nextBtn.onclick = () => {
   if (currentIndex < videoFiles.length - 1) {
     currentIndex++;
     screenshotsOffset = 0;
+    videoMetaDiv.textContent = '';
     updateUI();
   }
 };
@@ -125,6 +141,7 @@ prevBtn.onclick = () => {
   if (currentIndex > 0) {
     currentIndex--;
     screenshotsOffset = 0;
+    videoMetaDiv.textContent = '';
     updateUI();
   }
 };
