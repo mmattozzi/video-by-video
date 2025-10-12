@@ -1,6 +1,6 @@
 // Select subtitle tracks based on profile and metadata
 function selectSubtitleTracks(profile, fullMetadata) {
-  if (profile === 'SD Animation' || profile === 'SD') {
+  if (profile.startsWith('SD')) {
     if (fullMetadata && fullMetadata.streams) {
       // Find all subtitle streams
       const subtitleStreams = fullMetadata.streams.filter(st => st.codec_type === 'subtitle');
@@ -12,7 +12,7 @@ function selectSubtitleTracks(profile, fullMetadata) {
       // Otherwise include all subtitles
       return subtitleStreams.map(st => st.index);
     }
-  } else if (profile === 'HD Mac M1 HQ') {
+  } else if (profile.startsWith('HD')) {
     if (fullMetadata && fullMetadata.streams) {
       // Find all subtitle streams
       const subtitleStreams = fullMetadata.streams.filter(st => st.codec_type === 'subtitle');
@@ -190,7 +190,7 @@ ipcMain.handle('encode', async (event, filePath, outName, profile, fullMetadata)
     var currentStreamIndex = 1;
 
     // Include all audio tracks for HD & better profiles
-    if (profile === 'HD Mac M1 HQ') {
+    if (profile.startsWith('HD')) {
       if (audioStreams.length > 0) {        
         audioStreams.forEach(at => {
           ffmpegArgs.push('-map', `0:${at.index}`);
