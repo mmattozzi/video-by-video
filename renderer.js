@@ -20,6 +20,7 @@ const playBtn = document.getElementById('playBtn');
 const moreScreenshotsBtn = document.getElementById('moreScreenshotsBtn');
 const encodeBtn = document.getElementById('encodeBtn');
 const encodingProfileSelect = document.getElementById('encodingProfile');
+const englishOnlyCheckbox = document.getElementById('englishOnlyCheckbox');
 
 // Encoding queue
 let encodingQueue = [];
@@ -28,9 +29,9 @@ let encodingActive = false;
 function processEncodingQueue() {
   if (encodingActive || encodingQueue.length === 0) return;
   encodingActive = true;
-  const { filePath, outName, profile } = encodingQueue.shift();
+  const { filePath, outName, profile, englishOnly } = encodingQueue.shift();
   const fullMetadata = videoMetadatas[filePath];
-  ipcRenderer.invoke('encode', filePath, outName, profile, fullMetadata).then(() => {
+  ipcRenderer.invoke('encode', filePath, outName, profile, fullMetadata, englishOnly).then(() => {
     encodingActive = false;
     processEncodingQueue();
   });
@@ -40,14 +41,15 @@ if (encodeBtn) {
     const newName = newNameInput.value.trim();
     if (!newName || !videoFiles[currentIndex]) return;
     const profile = encodingProfileSelect ? encodingProfileSelect.value : 'SD';
+    const englishOnly = englishOnlyCheckbox ? englishOnlyCheckbox.checked : false;
     // Rename first
     const newPath = await ipcRenderer.invoke('rename-video', videoFiles[currentIndex], newName);
     if (newPath) {
       renameResult.textContent = 'Renamed to: ' + newPath;
       videoFiles[currentIndex] = newPath;
       screenshotsOffset = 0;
-      // Add to encoding queue with profile
-      encodingQueue.push({ filePath: newPath, outName: newName, profile });
+      // Add to encoding queue with profile and englishOnly
+      encodingQueue.push({ filePath: newPath, outName: newName, profile, englishOnly });
       processEncodingQueue();
       // Move to next file automatically if not last
       if (currentIndex < videoFiles.length - 1) {

@@ -1,5 +1,5 @@
 // Select subtitle tracks based on profile and metadata
-function selectSubtitleTracks(profile, fullMetadata) {
+function selectSubtitleTracks(profile, fullMetadata, englishOnly = false) {
   if (profile.startsWith('SD')) {
     if (fullMetadata && fullMetadata.streams) {
       // Find all subtitle streams
@@ -117,11 +117,11 @@ ipcMain.handle('select-videos', async () => {
 });
 
 // IPC handler for encoding SD
-ipcMain.handle('encode', async (event, filePath, outName, profile, fullMetadata) => {
+ipcMain.handle('encode', async (event, filePath, outName, profile, fullMetadata, englishOnly) => {
   return new Promise((resolve, reject) => {
     // Select subtitle tracks to include
-    const subtitleTrackIndexes = selectSubtitleTracks(profile, fullMetadata);
-    const audioStreams = selectAudioTracks(profile, fullMetadata);
+    const subtitleTrackIndexes = selectSubtitleTracks(profile, fullMetadata, englishOnly);
+    const audioStreams = selectAudioTracks(profile, fullMetadata, englishOnly);
     
     const dir = path.dirname(filePath);
     const ext = path.extname(filePath);
@@ -167,9 +167,6 @@ ipcMain.handle('encode', async (event, filePath, outName, profile, fullMetadata)
         '-i', filePath,
         '-map', '0:v:0',
         '-c:v', 'hevc_videotoolbox',
-        '-b:v', '8000k',
-        '-maxrate', '16000k',
-        '-bufsize', '16000k',
         '-q:v', '65',
         '-vf', "scale=1920:-2"        
       ];
