@@ -107,6 +107,52 @@ function createWindow() {
 
 app.whenReady().then(createWindow);
 
+// IPC to open the queue window from renderer
+ipcMain.handle('open-queue-window', () => {
+  openQueueWindow();
+});
+// Global encoding queue and processing logic
+let encodingQueue = [];
+let encodingActive = false;
+
+function processEncodingQueue() {
+  if (encodingActive || encodingQueue.length === 0) return;
+  encodingActive = true;
+  const item = encodingQueue[0];
+  // Call the encode logic (reuse the existing handler)
+  encodeItem(item).then(() => {
+    encodingQueue.shift();
+    encodingActive = false;
+    processEncodingQueue();
+  });
+}
+
+// IPC to add to the encoding queue
+ipcMain.handle('add-to-encoding-queue', async (event, item) => {
+  encodingQueue.push(item);
+  processEncodingQueue();
+  return true;
+});
+
+// IPC to get the current encoding queue
+ipcMain.handle('get-encoding-queue', async () => {
+  return encodingQueue;
+});
+
+// Function to open the queue window
+function openQueueWindow() {
+  const queueWin = new BrowserWindow({
+    width: 400,
+    height: 600,
+    webPreferences: {
+      nodeIntegration: true,
+      contextIsolation: false,
+    },
+    title: 'Encoding Queue'
+  });
+  queueWin.loadFile('queue.html');
+}
+
 ipcMain.handle('select-videos', async () => {
   const { canceled, filePaths } = await dialog.showOpenDialog({
     filters: [{ name: 'Videos', extensions: ['mp4', 'mov', 'avi', 'mkv'] }],
@@ -116,27 +162,28 @@ ipcMain.handle('select-videos', async () => {
   return filePaths;
 });
 
-// IPC handler for encoding SD
-ipcMain.handle('encode', async (event, filePath, outName, profile, fullMetadata, englishOnly) => {
+
+// // IPC handler for encoding SD
+async function encodeItem(encodingQueueItem) {
   return new Promise((resolve, reject) => {
     // Select subtitle tracks to include
-    const subtitleTrackIndexes = selectSubtitleTracks(profile, fullMetadata, englishOnly);
-    const audioStreams = selectAudioTracks(profile, fullMetadata, englishOnly);
-    
-    const dir = path.dirname(filePath);
-    const ext = path.extname(filePath);
+    const subtitleTrackIndexes = selectSubtitleTracks(encodingQueueItem.profile, encodingQueueItem.fullMetadata, encodingQueueItem.englishOnly);
+    const audioStreams = selectAudioTracks(encodingQueueItem.profile, encodingQueueItem.fullMetadata, encodingQueueItem.englishOnly);
+
+    const dir = path.dirname(encodingQueueItem.filePath);
+    const ext = path.extname(encodingQueueItem.filePath);
     const completedDir = path.join(dir, 'Completed');
     if (!fs.existsSync(completedDir)) fs.mkdirSync(completedDir);
-    const outPath = path.join(completedDir, outName + '.mkv');
+    const outPath = path.join(completedDir, encodingQueueItem.outName + '.mkv');
     const logPath = path.join(completedDir, 'ffmpeg.log');
     const logStream = fs.createWriteStream(logPath, { flags: 'a' });
     let ffmpegArgs;
-    if (profile === 'SD Animation') {
+    if (encodingQueueItem.profile === 'SD Animation') {
       // Animation: higher CRF, tune animation, same scaling
       // Not quite ready yet, still having audio sync issues
       ffmpegArgs = [
         '-fflags', '+genpts',
-        '-i', filePath,
+        '-i', encodingQueueItem.filePath,
         '-map', '0:v',
         '-c:v', 'libx264',
         '-preset', 'slow',
@@ -147,11 +194,11 @@ ipcMain.handle('encode', async (event, filePath, outName, profile, fullMetadata,
         '-c:a', 'aac',
         '-af', 'aresample=async=1:first_pts=0'
       ];
-    } else if (profile === 'HD Mac M1 HQ') {
+    } else if (encodingQueueItem.profile === 'HD Mac M1 HQ') {
       // HD profile for Mac M1: HEVC/h265 with videotoolbox and CQ 55
       ffmpegArgs = [
         '-fflags', '+genpts',
-        '-i', filePath,
+        '-i', encodingQueueItem.filePath,
         '-map', '0:v:0',
         '-c:v', 'hevc_videotoolbox',
         '-b:v', '10000k',
@@ -160,11 +207,11 @@ ipcMain.handle('encode', async (event, filePath, outName, profile, fullMetadata,
         '-q:v', '55',
         '-vf', "scale=1920:-2"        
       ];
-    } else if (profile === 'HD Mac M1 MQ') {
+    } else if (encodingQueueItem.profile === 'HD Mac M1 MQ') {
       // HD profile for Mac M1: HEVC/h265 with videotoolbox and CQ 65
       ffmpegArgs = [
         '-fflags', '+genpts',
-        '-i', filePath,
+        '-i', encodingQueueItem.filePath,
         '-map', '0:v:0',
         '-c:v', 'hevc_videotoolbox',
         '-q:v', '65',
@@ -173,7 +220,7 @@ ipcMain.handle('encode', async (event, filePath, outName, profile, fullMetadata,
     } else {
       // Default SD profile
       ffmpegArgs = [
-        '-i', filePath,
+        '-i', encodingQueueItem.filePath,
         '-map', '0:v',
         '-c:v', 'libx264',
         '-preset', 'slow',
@@ -187,7 +234,7 @@ ipcMain.handle('encode', async (event, filePath, outName, profile, fullMetadata,
     var currentStreamIndex = 1;
 
     // Include all audio tracks for HD & better profiles
-    if (profile.startsWith('HD')) {
+    if (encodingQueueItem.profile.startsWith('HD')) {
       if (audioStreams.length > 0) {        
         audioStreams.forEach(at => {
           ffmpegArgs.push('-map', `0:${at.index}`);
@@ -233,7 +280,7 @@ ipcMain.handle('encode', async (event, filePath, outName, profile, fullMetadata,
       resolve(false);
     });
   });
-});
+};
 
 ipcMain.handle('extract-screenshots', async (event, videoPath, offset = 0) => {
   return new Promise((resolve, reject) => {

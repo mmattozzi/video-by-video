@@ -1,3 +1,9 @@
+const openQueueBtn = document.getElementById('openQueueBtn');
+if (openQueueBtn) {
+  openQueueBtn.onclick = () => {
+    ipcRenderer.invoke('open-queue-window');
+  };
+}
 const { ipcRenderer } = require('electron');
 
 const openBtn = document.getElementById('openBtn');
@@ -22,20 +28,7 @@ const encodeBtn = document.getElementById('encodeBtn');
 const encodingProfileSelect = document.getElementById('encodingProfile');
 const englishOnlyCheckbox = document.getElementById('englishOnlyCheckbox');
 
-// Encoding queue
-let encodingQueue = [];
-let encodingActive = false;
-
-function processEncodingQueue() {
-  if (encodingActive || encodingQueue.length === 0) return;
-  encodingActive = true;
-  const { filePath, outName, profile, englishOnly } = encodingQueue.shift();
-  const fullMetadata = videoMetadatas[filePath];
-  ipcRenderer.invoke('encode', filePath, outName, profile, fullMetadata, englishOnly).then(() => {
-    encodingActive = false;
-    processEncodingQueue();
-  });
-}
+// No local encoding queue; all queueing is handled in main process
 if (encodeBtn) {
   encodeBtn.onclick = async () => {
     const newName = newNameInput.value.trim();
@@ -48,9 +41,15 @@ if (encodeBtn) {
       renameResult.textContent = 'Renamed to: ' + newPath;
       videoFiles[currentIndex] = newPath;
       screenshotsOffset = 0;
-      // Add to encoding queue with profile and englishOnly
-      encodingQueue.push({ filePath: newPath, outName: newName, profile, englishOnly });
-      processEncodingQueue();
+      // Add to encoding queue in main process
+      const fullMetadata = videoMetadatas[newPath];
+      await ipcRenderer.invoke('add-to-encoding-queue', {
+        filePath: newPath,
+        outName: newName,
+        profile,
+        englishOnly,
+        fullMetadata
+      });
       // Move to next file automatically if not last
       if (currentIndex < videoFiles.length - 1) {
         currentIndex++;
