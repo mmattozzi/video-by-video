@@ -29,6 +29,7 @@
     #renameBtn { flex: 0 0 auto; white-space: nowrap; }
     #videoPath { font-size: 0.9em; color: #555; margin-top: 1em; }
     #videoMeta { font-size: 0.8em; color: #666; margin-top: 1em; }
+    #encodingRow { display: flex; align-items: center; gap: 0.5em; margin-top: 1em; }
     .subtle { color: #666; font-size: 0.9em; margin-left: 1em; }
   </style>
 </head>
@@ -53,8 +54,19 @@
   <div id="rename-section" style="display:none;">
     <div id="rename-row">
       <input id="newName" placeholder="New file name (no extension)" />
-      <button id="renameBtn">Rename Video</button>
-      <button id="playBtn">Play in VLC</button>
+  <button id="renameBtn">Rename Video</button>
+  
+  <button id="playBtn">Play in VLC</button>
+    </div>
+    <div id="encodingRow">
+      <label for="encodingProfile">Encoding Profile:</label>
+      <select id="encodingProfile">
+        <option value="HD Mac M1 HQ">HD Mac M1 HEVC High Quality</option>
+        <option value="HD Mac M1 MQ">HD Mac M1 HEVC Medium Quality</option>
+        <option value="SD">SD</option>
+        <!-- <option value="SD Animation">SD Animation</option> Not quite ready yet -->        
+      </select>
+      <button id="encodeBtn">Encode</button>
     </div>
     <div id="renameResult"></div>
   </div>

@@ -1,3 +1,68 @@
+// Select subtitle tracks based on profile and metadata
+function selectSubtitleTracks(profile, fullMetadata) {
+  if (profile === 'SD Animation' || profile === 'SD') {
+    if (fullMetadata && fullMetadata.streams) {
+      // Find all subtitle streams
+      const subtitleStreams = fullMetadata.streams.filter(st => st.codec_type === 'subtitle');
+      // Prefer DVD subtitles if available
+      const dvdSubs = subtitleStreams.filter(st => st.codec_name === 'dvd_subtitle');
+      if (dvdSubs.length > 0) {
+        return dvdSubs.map(st => st.index);
+      }
+      // Otherwise include all subtitles
+      return subtitleStreams.map(st => st.index);
+    }
+  } else if (profile === 'HD Mac M1 HQ') {
+    if (fullMetadata && fullMetadata.streams) {
+      // Find all subtitle streams
+      const subtitleStreams = fullMetadata.streams.filter(st => st.codec_type === 'subtitle');
+      // Prefer PGS subtitles if available
+      const pgsSubs = subtitleStreams.filter(st => (st.codec_name == 'hdmv_pgs_subtitle' || st.codec_name == 'dvd_subtitle'));
+      if (pgsSubs.length > 0) {
+        return pgsSubs.map(st => st.index);
+      }
+      // Otherwise include all subtitles
+      return subtitleStreams.map(st => st.index);
+    }
+  }
+  return [];
+}
+
+function selectAudioTracks(profile, fullMetadata, englishOnly = false) {
+  var audioTracks = [];
+  if (fullMetadata && fullMetadata.streams) {
+    // Find all audio streams
+    const audioStreams = fullMetadata.streams.filter(st => st.codec_type === 'audio');
+    if (audioStreams.length > 0) {
+      var lowestAudioTrackIndex = null;
+      for (let audioStream of audioStreams) {
+        const lang = (audioStream.tags && (audioStream.tags.language || audioStream.tags.LANGUAGE)) ? (audioStream.tags.language || audioStream.tags.LANGUAGE).toLowerCase() : '';
+        var audioTrack = { index: audioStream.index, lang, codec: audioStream.codec_name, channels: audioStream.channels || 0 };
+        if (englishOnly) {
+          if (lang === 'eng' || lang === 'en') {
+            audioTracks.push(audioTrack);
+            lowestAudioTrackIndex = (lowestAudioTrackIndex === null) ? audioStream.index : Math.min(lowestAudioTrackIndex, audioStream.index);
+          }
+        } else {
+          audioTracks.push(audioTrack);
+          lowestAudioTrackIndex = (lowestAudioTrackIndex === null) ? audioStream.index : Math.min(lowestAudioTrackIndex, audioStream.index);
+        }
+      }
+      // Find the audio track with the lowest index and add a field to indicate it's the default
+      if (lowestAudioTrackIndex !== null) {
+        audioTracks = audioTracks.map(at => {
+          if (at.index === lowestAudioTrackIndex) {
+            return { ...at, isDefault: true };
+          }
+          return at;
+        });
+      }
+      return audioTracks;
+    }
+  }
+  return [];
+}
+
 const { app, BrowserWindow, dialog, ipcMain, Menu } = require('electron');
 // Set the app name and menu for the macOS menu bar
 if (process.platform === 'darwin') {
@@ -49,6 +114,128 @@ ipcMain.handle('select-videos', async () => {
   });
   if (canceled) return [];
   return filePaths;
+});
+
+// IPC handler for encoding SD
+ipcMain.handle('encode', async (event, filePath, outName, profile, fullMetadata) => {
+  return new Promise((resolve, reject) => {
+    // Select subtitle tracks to include
+    const subtitleTrackIndexes = selectSubtitleTracks(profile, fullMetadata);
+    const audioStreams = selectAudioTracks(profile, fullMetadata);
+    
+    const dir = path.dirname(filePath);
+    const ext = path.extname(filePath);
+    const completedDir = path.join(dir, 'Completed');
+    if (!fs.existsSync(completedDir)) fs.mkdirSync(completedDir);
+    const outPath = path.join(completedDir, outName + '.mkv');
+    const logPath = path.join(completedDir, 'ffmpeg.log');
+    const logStream = fs.createWriteStream(logPath, { flags: 'a' });
+    let ffmpegArgs;
+    if (profile === 'SD Animation') {
+      // Animation: higher CRF, tune animation, same scaling
+      // Not quite ready yet, still having audio sync issues
+      ffmpegArgs = [
+        '-fflags', '+genpts',
+        '-i', filePath,
+        '-map', '0:v',
+        '-c:v', 'libx264',
+        '-preset', 'slow',
+        '-crf', '21',
+        '-tune', 'animation',
+        '-vf', "yadif=deint=interlaced:mode=0,fieldmatch,decimate,scale=720:-2",
+        '-map', '0:a',
+        '-c:a', 'aac',
+        '-af', 'aresample=async=1:first_pts=0'
+      ];
+    } else if (profile === 'HD Mac M1 HQ') {
+      // HD profile for Mac M1: HEVC/h265 with videotoolbox and CQ 55
+      ffmpegArgs = [
+        '-fflags', '+genpts',
+        '-i', filePath,
+        '-map', '0:v:0',
+        '-c:v', 'hevc_videotoolbox',
+        '-b:v', '10000k',
+        '-maxrate', '20000k',
+        '-bufsize', '20000k',
+        '-q:v', '55',
+        '-vf', "scale=1920:-2"        
+      ];
+    } else if (profile === 'HD Mac M1 MQ') {
+      // HD profile for Mac M1: HEVC/h265 with videotoolbox and CQ 65
+      ffmpegArgs = [
+        '-fflags', '+genpts',
+        '-i', filePath,
+        '-map', '0:v:0',
+        '-c:v', 'hevc_videotoolbox',
+        '-b:v', '8000k',
+        '-maxrate', '16000k',
+        '-bufsize', '16000k',
+        '-q:v', '65',
+        '-vf', "scale=1920:-2"        
+      ];
+    } else {
+      // Default SD profile
+      ffmpegArgs = [
+        '-i', filePath,
+        '-map', '0:v',
+        '-c:v', 'libx264',
+        '-preset', 'slow',
+        '-crf', '18',
+        '-vf', "scale=720:-2",
+        '-map', '0:a',
+        '-c:a', 'aac'
+      ];
+    }
+
+    var currentStreamIndex = 1;
+
+    // Include all audio tracks for HD & better profiles
+    if (profile === 'HD Mac M1 HQ') {
+      if (audioStreams.length > 0) {        
+        audioStreams.forEach(at => {
+          ffmpegArgs.push('-map', `0:${at.index}`);
+          ffmpegArgs.push(`-c:${currentStreamIndex++}`, 'copy');
+
+          // For the default audio track, if the code is not ac3 or aac, also include a re-encoded aac version
+          if (at.isDefault) {
+            if (at.codec !== 'aac' && at.codec !== 'ac3') {
+              ffmpegArgs.push('-map', `0:${at.index}`);
+              ffmpegArgs.push(`-filter:${currentStreamIndex}`, 'aresample=async=1:first_pts=0'); 
+              ffmpegArgs.push(`-c:${currentStreamIndex}`, 'aac');
+              ffmpegArgs.push(`-b:${currentStreamIndex++}`, '192k');              
+            }
+          }
+        });
+      }
+    }
+
+    // Include subtitle tracks if any
+    if (subtitleTrackIndexes.length > 0) {
+      subtitleTrackIndexes.forEach(idx => {
+        ffmpegArgs.push('-map', `0:${idx}`);
+        ffmpegArgs.push(`-c:${currentStreamIndex++}`, 'copy');
+      });      
+    }
+
+    ffmpegArgs.push('-vsync', 'vfr');
+    // Add output path
+    ffmpegArgs.push('-y');
+    ffmpegArgs.push(outPath);
+
+    const ffmpegBin = ffmpegPath;
+    console.log('Running ffmpeg with args:', ffmpegArgs.join(' '));
+    const proc = spawn(ffmpegBin, ffmpegArgs);
+    proc.stdout.on('data', data => logStream.write(data));
+    proc.stderr.on('data', data => logStream.write(data));
+    proc.on('close', code => {
+      logStream.end();
+      resolve(code === 0);
+    });
+    proc.on('error', err => {
+      logStream.end();
+      resolve(false);
+    });
+  });
 });
 
 ipcMain.handle('extract-screenshots', async (event, videoPath, offset = 0) => {
@@ -112,7 +299,7 @@ ipcMain.handle('get-video-meta', async (event, videoPath) => {
           res = `${vStream.width}x${vStream.height}`;
         }
       }
-      resolve({ duration: durationStr, resolution: res });
+      resolve({ duration: durationStr, resolution: res, fullMetadata: metadata});
     });
   });
 });

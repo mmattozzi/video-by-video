@@ -18,6 +18,48 @@ const baseNameDialog = document.getElementById('baseNameDialog');
 
 const playBtn = document.getElementById('playBtn');
 const moreScreenshotsBtn = document.getElementById('moreScreenshotsBtn');
+const encodeBtn = document.getElementById('encodeBtn');
+const encodingProfileSelect = document.getElementById('encodingProfile');
+
+// Encoding queue
+let encodingQueue = [];
+let encodingActive = false;
+
+function processEncodingQueue() {
+  if (encodingActive || encodingQueue.length === 0) return;
+  encodingActive = true;
+  const { filePath, outName, profile } = encodingQueue.shift();
+  const fullMetadata = videoMetadatas[filePath];
+  ipcRenderer.invoke('encode', filePath, outName, profile, fullMetadata).then(() => {
+    encodingActive = false;
+    processEncodingQueue();
+  });
+}
+if (encodeBtn) {
+  encodeBtn.onclick = async () => {
+    const newName = newNameInput.value.trim();
+    if (!newName || !videoFiles[currentIndex]) return;
+    const profile = encodingProfileSelect ? encodingProfileSelect.value : 'SD';
+    // Rename first
+    const newPath = await ipcRenderer.invoke('rename-video', videoFiles[currentIndex], newName);
+    if (newPath) {
+      renameResult.textContent = 'Renamed to: ' + newPath;
+      videoFiles[currentIndex] = newPath;
+      screenshotsOffset = 0;
+      // Add to encoding queue with profile
+      encodingQueue.push({ filePath: newPath, outName: newName, profile });
+      processEncodingQueue();
+      // Move to next file automatically if not last
+      if (currentIndex < videoFiles.length - 1) {
+        currentIndex++;
+        videoMetaDiv.textContent = '';
+        updateUI();
+      }
+    } else {
+      renameResult.textContent = 'Rename failed.';
+    }
+  };
+}
 if (moreScreenshotsBtn) {
   moreScreenshotsBtn.style.display = 'none';
 }
@@ -27,6 +69,7 @@ let screenshotsOffset = 0; // in seconds
 let videoFiles = [];
 let currentIndex = 0;
 let baseName = '';
+let videoMetadatas = {}; // Store fullMetadata by file path
 
 function updateUI() {
   if (videoFiles.length === 0) {
@@ -49,6 +92,9 @@ function updateUI() {
 
   // Get video metadata and display
   ipcRenderer.invoke('get-video-meta', videoPath).then(meta => {
+    if (meta && meta.fullMetadata) {
+      videoMetadatas[videoPath] = meta.fullMetadata;
+    }
     if (videoMetaDiv) {
       if (meta && meta.duration && meta.resolution) {
         videoMetaDiv.textContent = `(${meta.duration} | ${meta.resolution})`;
