@@ -18,6 +18,10 @@ function renderQueue(queue) {
 
 function updateQueue() {
   ipcRenderer.invoke('get-encoding-queue').then(renderQueue);
+  ipcRenderer.invoke('get-current-ffmpeg-log').then(log => {
+    const logBox = document.getElementById('ffmpegLog');
+    if (logBox) logBox.value = log || '';
+  });
 }
 
 window.onload = updateQueue;

@@ -30,16 +30,18 @@ function selectSubtitleTracks(profile, fullMetadata, englishOnly = false) {
 
 function selectAudioTracks(profile, fullMetadata, englishOnly = false) {
   var audioTracks = [];
+  console.log(JSON.stringify(fullMetadata, null, 2));
   if (fullMetadata && fullMetadata.streams) {
     // Find all audio streams
-    const audioStreams = fullMetadata.streams.filter(st => st.codec_type === 'audio');
+    const audioStreams = fullMetadata.streams.filter(st => st.codec_type.toLowerCase() == 'audio');
     if (audioStreams.length > 0) {
       var lowestAudioTrackIndex = null;
       for (let audioStream of audioStreams) {
-        const lang = (audioStream.tags && (audioStream.tags.language || audioStream.tags.LANGUAGE)) ? (audioStream.tags.language || audioStream.tags.LANGUAGE).toLowerCase() : '';
-        var audioTrack = { index: audioStream.index, lang, codec: audioStream.codec_name, channels: audioStream.channels || 0 };
+        const audioLanguage = (audioStream.tags && (audioStream.tags.language || audioStream.tags.LANGUAGE)) ? (audioStream.tags.language || audioStream.tags.LANGUAGE).toLowerCase() : '';
+        var audioTrack = { index: audioStream.index, lang: audioLanguage, codec: audioStream.codec_name, channels: audioStream.channels || 0 };
+        console.log('Found audio track:', audioTrack);
         if (englishOnly) {
-          if (lang === 'eng' || lang === 'en') {
+          if (audioLanguage == 'eng' || audioLanguage == 'en') {
             audioTracks.push(audioTrack);
             lowestAudioTrackIndex = (lowestAudioTrackIndex === null) ? audioStream.index : Math.min(lowestAudioTrackIndex, audioStream.index);
           }
@@ -91,6 +93,9 @@ const ffmpegPath = require('ffmpeg-static');
 const fs = require('fs');
 const { spawn } = require('child_process');
 
+// Store current ffmpeg output for UI
+let currentFfmpegLog = '';
+
 ffmpeg.setFfmpegPath(ffmpegPath);
 
 function createWindow() {
@@ -114,6 +119,11 @@ ipcMain.handle('open-queue-window', () => {
 // Global encoding queue and processing logic
 let encodingQueue = [];
 let encodingActive = false;
+
+// IPC to get current ffmpeg log
+ipcMain.handle('get-current-ffmpeg-log', async () => {
+  return currentFfmpegLog;
+});
 
 function processEncodingQueue() {
   if (encodingActive || encodingQueue.length === 0) return;
@@ -177,6 +187,15 @@ async function encodeItem(encodingQueueItem) {
     const outPath = path.join(completedDir, encodingQueueItem.outName + '.mkv');
     const logPath = path.join(completedDir, 'ffmpeg.log');
     const logStream = fs.createWriteStream(logPath, { flags: 'a' });
+
+    // Fail early if no audio streams found
+    if (!audioStreams || audioStreams.length === 0) {
+      logStream.end();
+      currentFfmpegLog += '[Error: No audio streams found. Encoding aborted.]\n';
+      resolve(false);
+      return;
+    }
+
     let ffmpegArgs;
     if (encodingQueueItem.profile === 'SD Animation') {
       // Animation: higher CRF, tune animation, same scaling
@@ -268,15 +287,26 @@ async function encodeItem(encodingQueueItem) {
 
     const ffmpegBin = ffmpegPath;
     console.log('Running ffmpeg with args:', ffmpegArgs.join(' '));
+    currentFfmpegLog = '';
     const proc = spawn(ffmpegBin, ffmpegArgs);
-    proc.stdout.on('data', data => logStream.write(data));
-    proc.stderr.on('data', data => logStream.write(data));
+    proc.stdout.on('data', data => {
+      logStream.write(data);
+      currentFfmpegLog += data.toString();
+      if (currentFfmpegLog.length > 10000) currentFfmpegLog = currentFfmpegLog.slice(-10000); // limit log size
+    });
+    proc.stderr.on('data', data => {
+      logStream.write(data);
+      currentFfmpegLog += data.toString();
+      if (currentFfmpegLog.length > 10000) currentFfmpegLog = currentFfmpegLog.slice(-10000);
+    });
     proc.on('close', code => {
       logStream.end();
+      currentFfmpegLog += `\n[ffmpeg exited with code ${code}]\n`;
       resolve(code === 0);
     });
     proc.on('error', err => {
       logStream.end();
+      currentFfmpegLog += `\n[ffmpeg error: ${err}]\n`;
       resolve(false);
     });
   });

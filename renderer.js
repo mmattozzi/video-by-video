@@ -42,7 +42,11 @@ if (encodeBtn) {
       videoFiles[currentIndex] = newPath;
       screenshotsOffset = 0;
       // Add to encoding queue in main process
-      const fullMetadata = videoMetadatas[newPath];
+      const fullMetadata = currentVideoMetadata;
+      if (! fullMetadata) {
+        console.warn('No metadata found for', newPath);
+        fullMetadata = await ipcRenderer.invoke('get-video-meta', newPath).then(meta => meta ? meta.fullMetadata : null);
+      }
       await ipcRenderer.invoke('add-to-encoding-queue', {
         filePath: newPath,
         outName: newName,
@@ -70,7 +74,7 @@ let screenshotsOffset = 0; // in seconds
 let videoFiles = [];
 let currentIndex = 0;
 let baseName = '';
-let videoMetadatas = {}; // Store fullMetadata by file path
+let currentVideoMetadata = null; 
 
 function updateUI() {
   if (videoFiles.length === 0) {
@@ -94,7 +98,7 @@ function updateUI() {
   // Get video metadata and display
   ipcRenderer.invoke('get-video-meta', videoPath).then(meta => {
     if (meta && meta.fullMetadata) {
-      videoMetadatas[videoPath] = meta.fullMetadata;
+      currentVideoMetadata = meta.fullMetadata;
     }
     if (videoMetaDiv) {
       if (meta && meta.duration && meta.resolution) {
