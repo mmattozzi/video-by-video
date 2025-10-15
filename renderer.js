@@ -70,6 +70,9 @@ if (encodeBtn) {
 if (moreScreenshotsBtn) {
   moreScreenshotsBtn.style.display = 'none';
 }
+if (baseNameDialog) {
+  baseNameDialog.style.display = 'none';
+}
 
 let screenshotsOffset = 0; // in seconds
 
@@ -96,6 +99,8 @@ function updateUI() {
   videoPathDiv.textContent = videoPath;
   screenshotsDiv.innerHTML = 'Extracting screenshots...';
   if (moreScreenshotsBtn) moreScreenshotsBtn.style.display = '';
+  if (prevBtn) prevBtn.disabled = (currentIndex === 0);
+  if (nextBtn) nextBtn.disabled = (currentIndex === videoFiles.length - 1);
 
   // Get video metadata and display
   ipcRenderer.invoke('get-video-meta', videoPath).then(meta => {
