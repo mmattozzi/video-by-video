@@ -27,6 +27,8 @@ const moreScreenshotsBtn = document.getElementById('moreScreenshotsBtn');
 const encodeBtn = document.getElementById('encodeBtn');
 const encodingProfileSelect = document.getElementById('encodingProfile');
 const englishOnlyCheckbox = document.getElementById('englishOnlyCheckbox');
+const screenshotOffsetInput = document.getElementById('screenshotOffset');
+const screenshotOffsetBtn = document.getElementById('screenshotOffsetBtn');
 
 // No local encoding queue; all queueing is handled in main process
 if (encodeBtn) {
@@ -109,6 +111,11 @@ function updateUI() {
     }
   });
 
+  const screenshotOffsetVal = parseInt(screenshotOffsetInput.value);
+  if (!isNaN(screenshotOffsetVal) && screenshotOffsetVal >= 0) {
+    screenshotsOffset = screenshotOffsetVal;
+  }
+
   ipcRenderer.invoke('extract-screenshots', videoPath, screenshotsOffset).then(screenshots => {
     screenshotsDiv.innerHTML = '';
     const cacheBuster = Date.now();
@@ -149,6 +156,15 @@ if (moreScreenshotsBtn) {
   };
 }
 
+if (screenshotOffsetBtn) {
+  screenshotOffsetBtn.onclick = () => {
+    const val = parseInt(screenshotOffsetInput.value);
+    if (!isNaN(val) && val >= 0) {
+      screenshotsOffset = val;
+      updateUI();
+    }
+  };
+}
 
 renameBtn.onclick = async () => {
   const newName = newNameInput.value.trim();

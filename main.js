@@ -322,8 +322,9 @@ ipcMain.handle('extract-screenshots', async (event, videoPath, offset = 0) => {
       const screenshotsDir = path.join(app.getPath('temp'), 'video-thingy-screens');
       if (!fs.existsSync(screenshotsDir)) fs.mkdirSync(screenshotsDir);
       // Start timestamps at offset, then add interval
+      if (offset == 0) offset = 5;
       let start = offset;
-      let timestamps = Array.from({ length: count }, (_, i) => start + interval * (i + 1));
+      let timestamps = Array.from({ length: count }, (_, i) => start + (interval * (i + 0)));
       // Clamp timestamps to duration
       timestamps = timestamps.map(ts => Math.min(ts, duration - 1));
       const files = [];
