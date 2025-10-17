@@ -152,7 +152,7 @@ ipcMain.handle('get-encoding-queue', async () => {
 // Function to open the queue window
 function openQueueWindow() {
   const queueWin = new BrowserWindow({
-    width: 400,
+    width: 800,
     height: 600,
     webPreferences: {
       nodeIntegration: true,

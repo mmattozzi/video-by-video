@@ -5,13 +5,48 @@
   <title>Encoding Queue</title>
   <style>
     body { font-family: sans-serif; margin: 2em; }
-    #queueList { margin-top: 1em; }
-    .queue-item { margin-bottom: 0.5em; padding: 0.5em; border: 1px solid #ccc; border-radius: 4px; }
+      #queueList { margin-top: 1em; }
+      .queue-item { margin-bottom: 0.5em; padding: 0.5em; border: 1px solid #ccc; border-radius: 4px; }
+      .current-item-box {
+        background: #e6ffe6;
+        border: 2px solid #8fd88f;
+        border-radius: 6px;
+        padding: 1em;
+        margin-bottom: 1.5em;
+      }
+      .current-item-title {
+        font-weight: bold;
+        margin-bottom: 0.5em;
+        font-size: 1.1em;
+        background: #b2e6b2;
+        border-top-left-radius: 4px;
+        border-top-right-radius: 4px;
+        padding: 0.4em 1em;
+        margin: -1em -1em 1em -1em;
+        border-bottom: 1px solid #8fd88f;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.03);
+        letter-spacing: 0.5px;
+      }
+      .current-item-file {
+        font-size: 1em;
+        margin-bottom: 0.5em;
+        color: #333;
+      }
+      #ffmpegLog {
+        width: 100%;
+        height: 120px;
+        resize: none;
+        font-family: monospace;
+        font-size: 0.95em;
+        background: #f8fff8;
+        border: 1px solid #b2e6b2;
+        border-radius: 4px;
+        margin-bottom: 0.5em;
+      }
   </style>
 </head>
 <body>
-  <h2>Encoding Queue</h2>
-  <textarea id="ffmpegLog" readonly style="width:100%;height:120px;resize:none;font-family:monospace;font-size:0.95em;"></textarea>
+  <div id="currentItemContainer"></div>
   <div id="queueList"></div>
   <script src="queue.js"></script>
 </body>

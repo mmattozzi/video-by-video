@@ -3,24 +3,58 @@ const { ipcRenderer } = require('electron');
 
 function renderQueue(queue) {
   const queueList = document.getElementById('queueList');
+  const currentItemContainer = document.getElementById('currentItemContainer');
+  currentItemContainer.innerHTML = '';
   queueList.innerHTML = '';
   if (!queue || queue.length === 0) {
+    currentItemContainer.textContent = '';
     queueList.textContent = 'The encoding queue is empty.';
     return;
   }
-  queue.forEach((item, idx) => {
-    const div = document.createElement('div');
-    div.className = 'queue-item';
-    div.textContent = `${idx + 1}. ${item.outName} (${item.profile})`;
-    queueList.appendChild(div);
-  });
+  // Show the currently running item (first in queue)
+  const current = queue[0];
+  const currentBox = document.createElement('div');
+  currentBox.className = 'current-item-box';
+  const title = document.createElement('div');
+  title.className = 'current-item-title';
+  title.textContent = 'Now Encoding';
+  currentBox.appendChild(title);
+  const currentFile = document.createElement('div');
+  currentFile.className = 'current-item-file';
+  currentFile.textContent = `${current.outName} (${current.profile})`;
+  currentBox.appendChild(currentFile);
+  // Move the log textarea into the green box
+  const logBox = document.createElement('textarea');
+  logBox.id = 'ffmpegLog';
+  logBox.readOnly = true;
+  currentBox.appendChild(logBox);
+  currentItemContainer.appendChild(currentBox);
+
+  // Show the rest of the queue
+  if (queue.length > 1) {
+    queue.slice(1).forEach((item, idx) => {
+      const div = document.createElement('div');
+      div.className = 'queue-item';
+      div.textContent = `${idx + 2}. ${item.outName} (${item.profile})`;
+      queueList.appendChild(div);
+    });
+  } else {
+    queueList.textContent = 'No other items in the queue.';
+  }
 }
 
 function updateQueue() {
-  ipcRenderer.invoke('get-encoding-queue').then(renderQueue);
-  ipcRenderer.invoke('get-current-ffmpeg-log').then(log => {
-    const logBox = document.getElementById('ffmpegLog');
-    if (logBox) logBox.value = log || '';
+  ipcRenderer.invoke('get-encoding-queue').then(queue => {
+    renderQueue(queue);
+    // After rendering, update the log box if present
+    ipcRenderer.invoke('get-current-ffmpeg-log').then(log => {
+      const logBox = document.getElementById('ffmpegLog');
+      if (logBox) {
+        logBox.value = log || '';
+        // Auto-scroll to bottom
+        logBox.scrollTop = logBox.scrollHeight;
+      }
+    });
   });
 }
 
