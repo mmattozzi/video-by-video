@@ -236,6 +236,19 @@ async function encodeItem(encodingQueueItem) {
         '-q:v', '65',
         '-vf', "scale=1920:-2"        
       ];
+    } else if (encodingQueueItem.profile === '4K Mac M1 HQ') {
+      // 4K profile for Mac M1: HEVC/h265 with videotoolbox and CQ 55
+      ffmpegArgs = [
+        '-fflags', '+genpts',
+        '-i', encodingQueueItem.filePath,
+        '-map', '0:v:0',
+        '-c:v', 'hevc_videotoolbox',
+        '-pix_fmt', 'yuv420p10le',
+        '-tag:v', 'hvc1',
+        '-q:v', '65',
+        '-color_primaries', 'bt2020', '-color_trc', 'smpte2084', '-colorspace', 'bt2020nc',
+        '-vf', "scale=3840:-2"        
+      ];
     } else {
       // Default SD profile
       ffmpegArgs = [
@@ -253,7 +266,7 @@ async function encodeItem(encodingQueueItem) {
     var currentStreamIndex = 1;
 
     // Include all audio tracks for HD & better profiles
-    if (encodingQueueItem.profile.startsWith('HD')) {
+    if (encodingQueueItem.profile.startsWith('HD') || encodingQueueItem.profile.startsWith('4K')) {
       if (audioStreams.length > 0) {        
         audioStreams.forEach(at => {
           ffmpegArgs.push('-map', `0:${at.index}`);
