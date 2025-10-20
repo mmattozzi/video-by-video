@@ -140,13 +140,21 @@ function processEncodingQueue() {
 // IPC to add to the encoding queue
 ipcMain.handle('add-to-encoding-queue', async (event, item) => {
   encodingQueue.push(item);
-  processEncodingQueue();
   return true;
 });
 
 // IPC to get the current encoding queue
 ipcMain.handle('get-encoding-queue', async () => {
   return encodingQueue;
+});
+
+// IPC to start the encoding queue (without adding a new item)
+ipcMain.handle('start-encoding-queue', async () => {
+  if (!encodingActive && encodingQueue.length > 0) {
+    processEncodingQueue();
+    return true;
+  }
+  return false;
 });
 
 // Function to open the queue window

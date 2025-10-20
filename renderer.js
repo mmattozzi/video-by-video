@@ -24,15 +24,96 @@ const baseNameDialog = document.getElementById('baseNameDialog');
 
 const playBtn = document.getElementById('playBtn');
 const moreScreenshotsBtn = document.getElementById('moreScreenshotsBtn');
-const encodeBtn = document.getElementById('encodeBtn');
+const queueEncodeBtn = document.getElementById('queueEncodeBtn');
+const startEncodeBtn = document.getElementById('startEncodeBtn');
 const encodingProfileSelect = document.getElementById('encodingProfile');
 const englishOnlyCheckbox = document.getElementById('englishOnlyCheckbox');
 const screenshotOffsetInput = document.getElementById('screenshotOffset');
 const screenshotOffsetBtn = document.getElementById('screenshotOffsetBtn');
 
+if (startEncodeBtn) {
+  startEncodeBtn.onclick = async () => {
+    const newName = newNameInput.value.trim();
+    if (!newName || !videoFiles[currentIndex]) return;
+    // Check queue state
+    const queue = await ipcRenderer.invoke('get-encoding-queue');
+    if (queue && queue.length > 0) {
+      // If queue has items, just start encoding
+      await ipcRenderer.invoke('start-encoding-queue');
+    } else {
+      // If queue is empty, add current item and start encoding
+      const profile = encodingProfileSelect ? encodingProfileSelect.value : 'SD';
+      const englishOnly = englishOnlyCheckbox ? englishOnlyCheckbox.checked : false;
+      // Rename first
+      const newPath = await ipcRenderer.invoke('rename-video', videoFiles[currentIndex], newName);
+      if (newPath) {
+        renameResult.textContent = 'Renamed to: ' + newPath;
+        videoFiles[currentIndex] = newPath;
+        screenshotsOffset = 0;
+        let fullMetadata = currentVideoMetadata;
+        if (!fullMetadata) {
+          fullMetadata = await ipcRenderer.invoke('get-video-meta', newPath).then(meta => meta ? meta.fullMetadata : null);
+        }
+        await ipcRenderer.invoke('add-to-encoding-queue', {
+          filePath: newPath,
+          outName: newName,
+          profile,
+          englishOnly,
+          fullMetadata
+        });
+        await ipcRenderer.invoke('start-encoding-queue');
+        // Move to next file automatically if not last
+        if (currentIndex < videoFiles.length - 1) {
+          currentIndex++;
+          videoMetaDiv.textContent = '';
+          updateUI();
+        }
+      } else {
+        renameResult.textContent = 'Rename failed.';
+      }
+    }
+  };
+}
+
+if (queueEncodeBtn) {
+  queueEncodeBtn.onclick = async () => {
+    const newName = newNameInput.value.trim();
+    if (!newName || !videoFiles[currentIndex]) return;
+    const profile = encodingProfileSelect ? encodingProfileSelect.value : 'SD';
+    const englishOnly = englishOnlyCheckbox ? englishOnlyCheckbox.checked : false;
+    // Rename first
+    const newPath = await ipcRenderer.invoke('rename-video', videoFiles[currentIndex], newName);
+    if (newPath) {
+      renameResult.textContent = 'Renamed to: ' + newPath;
+      videoFiles[currentIndex] = newPath;
+      screenshotsOffset = 0;
+      let fullMetadata = currentVideoMetadata;
+      if (!fullMetadata) {
+        console.warn('No metadata found for', newPath);
+        fullMetadata = await ipcRenderer.invoke('get-video-meta', newPath).then(meta => meta ? meta.fullMetadata : null);
+      }
+      await ipcRenderer.invoke('add-to-encoding-queue', {
+        filePath: newPath,
+        outName: newName,
+        profile,
+        englishOnly,
+        fullMetadata
+      });
+      // Move to next file automatically if not last
+      if (currentIndex < videoFiles.length - 1) {
+        currentIndex++;
+        videoMetaDiv.textContent = '';
+        updateUI();
+      }
+    } else {
+      renameResult.textContent = 'Rename failed.';
+    }
+  };
+}
+
 // No local encoding queue; all queueing is handled in main process
-if (encodeBtn) {
-  encodeBtn.onclick = async () => {
+if (queueEncodeBtn) {
+  queueEncodeBtn.onclick = async () => {
     const newName = newNameInput.value.trim();
     if (!newName || !videoFiles[currentIndex]) return;
     const profile = encodingProfileSelect ? encodingProfileSelect.value : 'SD';
