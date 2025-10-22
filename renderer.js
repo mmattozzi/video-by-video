@@ -238,6 +238,7 @@ setBaseNameBtn.onclick = () => {
 if (moreScreenshotsBtn) {
   moreScreenshotsBtn.onclick = () => {
     screenshotsOffset += 30; // 8 screenshots, 30 seconds each
+    screenshotOffsetInput.value = screenshotsOffset;
     updateUI();
   };
 }
