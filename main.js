@@ -192,7 +192,7 @@ async function encodeItem(encodingQueueItem) {
     const ext = path.extname(encodingQueueItem.filePath);
     const completedDir = path.join(dir, 'Completed');
     if (!fs.existsSync(completedDir)) fs.mkdirSync(completedDir);
-    const outPath = path.join(completedDir, encodingQueueItem.outName + '.mkv');
+    const outPath = path.join(completedDir, encodingQueueItem.outName + (encodingQueueItem.profile.startsWith('SD') ? '.mp4' : '.mkv'));
     const logPath = path.join(completedDir, 'ffmpeg.log');
     const logStream = fs.createWriteStream(logPath, { flags: 'a' });
 
@@ -206,8 +206,7 @@ async function encodeItem(encodingQueueItem) {
 
     let ffmpegArgs;
     if (encodingQueueItem.profile === 'SD Animation') {
-      // Animation: higher CRF, tune animation, same scaling
-      // Not quite ready yet, still having audio sync issues
+      // Animation: higher CRF, tune animation, deinterlacing
       ffmpegArgs = [
         '-fflags', '+genpts',
         '-i', encodingQueueItem.filePath,
@@ -216,7 +215,7 @@ async function encodeItem(encodingQueueItem) {
         '-preset', 'slow',
         '-crf', '21',
         '-tune', 'animation',
-        '-vf', "yadif=deint=interlaced:mode=0,fieldmatch,decimate,scale=720:-2",
+        '-vf', "yadif=deint=interlaced:mode=0,scale=720:-2",
         '-map', '0:a',
         '-c:a', 'aac',
         '-af', 'aresample=async=1:first_pts=0'
@@ -294,14 +293,18 @@ async function encodeItem(encodingQueueItem) {
     }
 
     // Include subtitle tracks if any
-    if (subtitleTrackIndexes.length > 0) {
+    if (! encodingQueueItem.profile.startsWith('SD') && subtitleTrackIndexes.length > 0) {
       subtitleTrackIndexes.forEach(idx => {
         ffmpegArgs.push('-map', `0:${idx}`);
         ffmpegArgs.push(`-c:${currentStreamIndex++}`, 'copy');
       });      
     }
 
-    ffmpegArgs.push('-vsync', 'vfr');
+    if (encodingQueueItem.profile == "SD Animation") {
+      ffmpegArgs.push('-vsync', 'cfr');
+    } else {
+      ffmpegArgs.push('-vsync', 'vfr');
+    }
     // Add output path
     ffmpegArgs.push('-y');
     ffmpegArgs.push(outPath);
