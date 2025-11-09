@@ -204,6 +204,9 @@ async function encodeItem(encodingQueueItem) {
       return;
     }
 
+    var hdScale = (encodingQueueItem.fullMetadata && encodingQueueItem.fullMetadata.crop) ? 
+      `crop=${encodingQueueItem.fullMetadata.crop},scale=1920:-2` : "scale=1920:-2";
+
     let ffmpegArgs;
     if (encodingQueueItem.profile === 'SD Animation') {
       // Animation: higher CRF, tune animation, deinterlacing
@@ -231,7 +234,7 @@ async function encodeItem(encodingQueueItem) {
         '-maxrate', '20000k',
         '-bufsize', '20000k',
         '-q:v', '55',
-        '-vf', "scale=1920:-2"        
+        '-vf', hdScale        
       ];
     } else if (encodingQueueItem.profile === 'HD Mac M1 MQ') {
       // HD profile for Mac M1: HEVC/h265 with videotoolbox and CQ 65
@@ -241,7 +244,7 @@ async function encodeItem(encodingQueueItem) {
         '-map', '0:v:0',
         '-c:v', 'hevc_videotoolbox',
         '-q:v', '65',
-        '-vf', "scale=1920:-2"        
+        '-vf', hdScale        
       ];
     } else if (encodingQueueItem.profile === '4K Mac M1 HQ') {
       // 4K profile for Mac M1: HEVC/h265 with videotoolbox and CQ 55
@@ -398,7 +401,37 @@ ipcMain.handle('get-video-meta', async (event, videoPath) => {
           res = `${vStream.width}x${vStream.height}`;
         }
       }
-      resolve({ duration: durationStr, resolution: res, fullMetadata: metadata});
+
+      // Run cropdetect for a few seconds to get crop values
+      const ffmpegBin = ffmpegPath;
+      const cropArgs = [
+        '-ss', '10', // skip first 2 seconds
+        '-i', videoPath,
+        '-t', '4', // analyze 4 seconds
+        '-vf', 'cropdetect=24:16:0',
+        '-an',
+        '-f', 'null',
+        '-'
+      ];
+      let cropResult = '';
+      const proc = spawn(ffmpegBin, cropArgs);
+      proc.stderr.on('data', data => {
+        cropResult += data.toString();
+      });
+      proc.on('close', code => {
+        // Parse crop values from output
+        const cropMatches = [...cropResult.matchAll(/crop=([0-9]+:[0-9]+:[0-9]+:[0-9]+)/g)];
+        let crop = null;
+        if (cropMatches.length > 0) {
+          crop = cropMatches[cropMatches.length - 1][1]; // use last detected crop
+        }
+        console.log(`Detected crop: ${crop}, adding to metadata.`);
+        metadata.crop = crop;
+        resolve({ duration: durationStr, resolution: res, fullMetadata: metadata });
+      });
+      proc.on('error', err => {
+        resolve({ duration: durationStr, resolution: res, fullMetadata: metadata });
+      });
     });
   });
 });
