@@ -230,11 +230,22 @@ async function encodeItem(encodingQueueItem) {
         '-i', encodingQueueItem.filePath,
         '-map', '0:v:0',
         '-c:v', 'hevc_videotoolbox',
-        '-b:v', '10000k',
-        '-maxrate', '20000k',
-        '-bufsize', '20000k',
-        '-q:v', '55',
+        '-b:v',      '7500k',
+        '-maxrate',  '7500k',
+        '-bufsize', '15000k',
+        '-tag:v', 'hvc1',
         '-vf', hdScale        
+      ];
+    } else if (encodingQueueItem.profile === 'HD HQ') {
+      // HD profile for non-Mac M1: H.264 with libx264
+      ffmpegArgs = [
+        '-fflags', '+genpts',
+        '-i', encodingQueueItem.filePath,
+        '-map', '0:v:0',
+        '-c:v', 'libx264',
+        '-preset', 'slow',
+        '-crf', '21',
+        '-vf', hdScale
       ];
     } else if (encodingQueueItem.profile === 'HD Mac M1 MQ') {
       // HD profile for Mac M1: HEVC/h265 with videotoolbox and CQ 65
@@ -243,7 +254,14 @@ async function encodeItem(encodingQueueItem) {
         '-i', encodingQueueItem.filePath,
         '-map', '0:v:0',
         '-c:v', 'hevc_videotoolbox',
-        '-q:v', '65',
+        '-b:v', '4000k',
+        '-maxrate', '4000k',
+        '-bufsize', '8000k',
+        '-pix_fmt', 'yuv420p',
+        '-color_primaries', 'bt709',
+        '-color_trc', 'bt709',
+        '-colorspace', 'bt709',
+        '-tag:v', 'hvc1',
         '-vf', hdScale        
       ];
     } else if (encodingQueueItem.profile === '4K Mac M1 HQ') {
@@ -405,7 +423,7 @@ ipcMain.handle('get-video-meta', async (event, videoPath) => {
       // Run cropdetect for a few seconds to get crop values
       const ffmpegBin = ffmpegPath;
       const cropArgs = [
-        '-ss', '10', // skip first 2 seconds
+        '-ss', '120', // skip first 2 seconds
         '-i', videoPath,
         '-t', '4', // analyze 4 seconds
         '-vf', 'cropdetect=24:16:0',
