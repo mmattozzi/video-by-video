@@ -207,6 +207,9 @@ async function encodeItem(encodingQueueItem) {
     var hdScale = (encodingQueueItem.fullMetadata && encodingQueueItem.fullMetadata.crop) ? 
       `crop=${encodingQueueItem.fullMetadata.crop},scale=1920:-2` : "scale=1920:-2";
 
+    var sdScale = (encodingQueueItem.fullMetadata && encodingQueueItem.fullMetadata.crop) ? 
+      `crop=${encodingQueueItem.fullMetadata.crop},scale=854:-2` : "scale=854:-2";
+
     let ffmpegArgs;
     if (encodingQueueItem.profile === 'SD Animation') {
       // Animation: higher CRF, tune animation, deinterlacing
@@ -285,7 +288,7 @@ async function encodeItem(encodingQueueItem) {
         '-c:v', 'libx264',
         '-preset', 'slow',
         '-crf', '18',
-        '-vf', "scale=720:-2",
+        '-vf', sdScale,
         '-map', '0:a',
         '-c:a', 'aac'
       ];
