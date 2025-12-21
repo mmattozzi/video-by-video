@@ -204,11 +204,12 @@ async function encodeItem(encodingQueueItem) {
       return;
     }
 
-    var hdScale = (encodingQueueItem.fullMetadata && encodingQueueItem.fullMetadata.crop) ? 
-      `crop=${encodingQueueItem.fullMetadata.crop},scale=1920:-2` : "scale=1920:-2";
+    const applyCrop = !!encodingQueueItem.applyCrop;
+    const cropVal = (encodingQueueItem.fullMetadata && encodingQueueItem.fullMetadata.crop) ? encodingQueueItem.fullMetadata.crop : null;
 
-    var sdScale = (encodingQueueItem.fullMetadata && encodingQueueItem.fullMetadata.crop) ? 
-      `crop=${encodingQueueItem.fullMetadata.crop},scale=854:-2` : "scale=854:-2";
+    var hdScale = (applyCrop && cropVal) ? `crop=${cropVal},scale=1920:-2` : "scale=1920:-2";
+
+    var sdScale = (applyCrop && cropVal) ? `crop=${cropVal},scale=854:-2` : "scale=854:-2";
 
     let ffmpegArgs;
     if (encodingQueueItem.profile === 'SD Animation') {
@@ -269,6 +270,7 @@ async function encodeItem(encodingQueueItem) {
       ];
     } else if (encodingQueueItem.profile === '4K Mac M1 HQ') {
       // 4K profile for Mac M1: HEVC/h265 with videotoolbox and CQ 55
+      var fourKScale = (applyCrop && cropVal) ? `crop=${cropVal},scale=3840:-2` : "scale=3840:-2";
       ffmpegArgs = [
         '-fflags', '+genpts',
         '-i', encodingQueueItem.filePath,
@@ -278,7 +280,7 @@ async function encodeItem(encodingQueueItem) {
         '-tag:v', 'hvc1',
         '-q:v', '65',
         '-color_primaries', 'bt2020', '-color_trc', 'smpte2084', '-colorspace', 'bt2020nc',
-        '-vf', "scale=3840:-2"        
+        '-vf', fourKScale       
       ];
     } else {
       // Default SD profile
