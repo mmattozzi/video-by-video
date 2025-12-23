@@ -65,6 +65,12 @@ function selectAudioTracks(profile, fullMetadata, englishOnly = false) {
   return [];
 }
 
+function checkCropString(cropStr) {
+  // Valid crop string is in the format "width:height:x:y" where all are integers
+  const cropRegex = /^(\d+):(\d+):0:(\d+)$/;
+  return cropRegex.test(cropStr);
+}
+
 const { app, BrowserWindow, dialog, ipcMain, Menu } = require('electron');
 // Set the app name and menu for the macOS menu bar
 if (process.platform === 'darwin') {
@@ -448,7 +454,11 @@ ipcMain.handle('get-video-meta', async (event, videoPath) => {
         if (cropMatches.length > 0) {
           crop = cropMatches[cropMatches.length - 1][1]; // use last detected crop
         }
-        console.log(`Detected crop: ${crop}, adding to metadata.`);
+        console.log(`Detected crop: ${crop}`);
+        if (crop && !checkCropString(crop)) {
+          crop = null; // reset crop to null on invalid format
+          console.log(`Found unlikely crop string, ignoring.`);
+        }
         metadata.crop = crop;
         resolve({ duration: durationStr, resolution: res, fullMetadata: metadata });
       });
