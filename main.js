@@ -67,8 +67,10 @@ function selectAudioTracks(profile, fullMetadata, englishOnly = false) {
 
 function checkCropString(cropStr) {
   // Valid crop string is in the format "width:height:x:y" where all are integers
+  // At least one of x or y must be zero, we should not have a crop where both x and y are non-zero
   const cropRegex = /^(\d+):(\d+):0:(\d+)$/;
-  return cropRegex.test(cropStr);
+  const cropRegex2 = /^(\d+):(\d+):(\d+):0$/;
+  return (cropRegex.test(cropStr) || cropRegex2.test(cropStr));
 }
 
 const { app, BrowserWindow, dialog, ipcMain, Menu } = require('electron');
