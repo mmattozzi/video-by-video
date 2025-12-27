@@ -118,43 +118,6 @@ if (queueEncodeBtn) {
   };
 }
 
-// No local encoding queue; all queueing is handled in main process
-if (queueEncodeBtn) {
-  queueEncodeBtn.onclick = async () => {
-    const newName = newNameInput.value.trim();
-    if (!newName || !videoFiles[currentIndex]) return;
-    const profile = encodingProfileSelect ? encodingProfileSelect.value : 'SD';
-    const englishOnly = englishOnlyCheckbox ? englishOnlyCheckbox.checked : false;
-    // Rename first
-    const newPath = await ipcRenderer.invoke('rename-video', videoFiles[currentIndex], newName);
-    if (newPath) {
-      renameResult.textContent = 'Renamed to: ' + newPath;
-      videoFiles[currentIndex] = newPath;
-      screenshotsOffset = 0;
-      // Add to encoding queue in main process
-      const fullMetadata = currentVideoMetadata;
-      if (! fullMetadata) {
-        console.warn('No metadata found for', newPath);
-        fullMetadata = await ipcRenderer.invoke('get-video-meta', newPath).then(meta => meta ? meta.fullMetadata : null);
-      }
-      await ipcRenderer.invoke('add-to-encoding-queue', {
-        filePath: newPath,
-        outName: newName,
-        profile,
-        englishOnly,
-        fullMetadata
-      });
-      // Move to next file automatically if not last
-      if (currentIndex < videoFiles.length - 1) {
-        currentIndex++;
-        videoMetaDiv.textContent = '';
-        updateUI();
-      }
-    } else {
-      renameResult.textContent = 'Rename failed.';
-    }
-  };
-}
 if (moreScreenshotsBtn) {
   moreScreenshotsBtn.style.display = 'none';
 }
