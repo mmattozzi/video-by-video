@@ -1,7 +1,7 @@
 // queue.js
 const { ipcRenderer } = require('electron');
 
-function renderQueue(queue) {
+function renderQueue(queue, active) {
   const queueList = document.getElementById('queueList');
   const currentItemContainer = document.getElementById('currentItemContainer');
   currentItemContainer.innerHTML = '';
@@ -28,6 +28,14 @@ function renderQueue(queue) {
   logBox.id = 'ffmpegLog';
   logBox.readOnly = true;
   currentBox.appendChild(logBox);
+  if (active) {
+    const stopBtn = document.createElement('button');
+    stopBtn.textContent = 'Stop Encoding';
+    stopBtn.onclick = () => {
+      ipcRenderer.invoke('stop-current-encoding');
+    };
+    currentBox.appendChild(stopBtn);
+  }
   currentItemContainer.appendChild(currentBox);
 
   // Show the rest of the queue
@@ -44,8 +52,8 @@ function renderQueue(queue) {
 }
 
 function updateQueue() {
-  ipcRenderer.invoke('get-encoding-queue').then(queue => {
-    renderQueue(queue);
+  ipcRenderer.invoke('get-encoding-status').then(status => {
+    renderQueue(status.queue, status.active);
     // After rendering, update the log box if present
     ipcRenderer.invoke('get-current-ffmpeg-log').then(log => {
       const logBox = document.getElementById('ffmpegLog');

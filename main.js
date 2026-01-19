@@ -127,6 +127,7 @@ ipcMain.handle('open-queue-window', () => {
 // Global encoding queue and processing logic
 let encodingQueue = [];
 let encodingActive = false;
+let currentFfmpegProcess = null;
 
 // IPC to get current ffmpeg log
 ipcMain.handle('get-current-ffmpeg-log', async () => {
@@ -156,6 +157,11 @@ ipcMain.handle('get-encoding-queue', async () => {
   return encodingQueue;
 });
 
+// IPC to get encoding status
+ipcMain.handle('get-encoding-status', async () => {
+  return { active: encodingActive, queue: encodingQueue };
+});
+
 // IPC to start the encoding queue (without adding a new item)
 ipcMain.handle('start-encoding-queue', async () => {
   if (!encodingActive && encodingQueue.length > 0) {
@@ -163,6 +169,15 @@ ipcMain.handle('start-encoding-queue', async () => {
     return true;
   }
   return false;
+});
+
+// IPC to stop current encoding
+ipcMain.handle('stop-current-encoding', async () => {
+  if (currentFfmpegProcess) {
+    currentFfmpegProcess.kill('SIGTERM');
+    currentFfmpegProcess = null;
+  }
+  return true;
 });
 
 // Function to open the queue window
@@ -256,7 +271,7 @@ async function encodeItem(encodingQueueItem) {
         '-map', '0:v:0',
         '-c:v', 'libx264',
         '-preset', 'slow',
-        '-crf', '21',
+        '-crf', '18',
         '-vf', hdScale
       ];
     } else if (encodingQueueItem.profile === 'HD Mac M1 MQ') {
@@ -347,6 +362,7 @@ async function encodeItem(encodingQueueItem) {
     console.log('Running ffmpeg with args:', ffmpegArgs.join(' '));
     currentFfmpegLog = '';
     const proc = spawn(ffmpegBin, ffmpegArgs);
+    currentFfmpegProcess = proc;
     proc.stdout.on('data', data => {
       logStream.write(data);
       currentFfmpegLog += data.toString();
@@ -360,11 +376,13 @@ async function encodeItem(encodingQueueItem) {
     proc.on('close', code => {
       logStream.end();
       currentFfmpegLog += `\n[ffmpeg exited with code ${code}]\n`;
+      currentFfmpegProcess = null;
       resolve(code === 0);
     });
     proc.on('error', err => {
       logStream.end();
       currentFfmpegLog += `\n[ffmpeg error: ${err}]\n`;
+      currentFfmpegProcess = null;
       resolve(false);
     });
   });
