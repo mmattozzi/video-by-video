@@ -230,6 +230,7 @@ async function encodeItem(encodingQueueItem) {
 
     const applyCrop = !!encodingQueueItem.applyCrop;
     const cropVal = (encodingQueueItem.fullMetadata && encodingQueueItem.fullMetadata.crop) ? encodingQueueItem.fullMetadata.crop : null;
+    const crfOverride = encodingQueueItem.crfOverride || null;
 
     var hdScale = (applyCrop && cropVal) ? `crop=${cropVal},scale=1920:-2` : "scale=1920:-2";
 
@@ -244,7 +245,7 @@ async function encodeItem(encodingQueueItem) {
         '-map', '0:v',
         '-c:v', 'libx264',
         '-preset', 'slow',
-        '-crf', '21',
+        '-crf', crfOverride || '21',
         '-tune', 'animation',
         '-vf', "yadif=deint=interlaced:mode=0,scale=720:-2",
         '-map', '0:a',
@@ -258,9 +259,12 @@ async function encodeItem(encodingQueueItem) {
         '-i', encodingQueueItem.filePath,
         '-map', '0:v:0',
         '-c:v', 'hevc_videotoolbox',
-        '-b:v',      '7500k',
-        '-maxrate',  '7500k',
-        '-bufsize', '15000k',
+        '-preset', 'slow',
+        '-q:v', crfOverride || '65',
+        '-pix_fmt', 'yuv420p',
+        '-color_primaries', 'bt709',
+        '-color_trc', 'bt709',
+        '-colorspace', 'bt709',
         '-tag:v', 'hvc1',
         '-vf', hdScale        
       ];
@@ -272,7 +276,7 @@ async function encodeItem(encodingQueueItem) {
         '-map', '0:v:0',
         '-c:v', 'libx264',
         '-preset', 'slow',
-        '-crf', '18',
+        '-crf', crfOverride || '18',
         '-vf', hdScale
       ];
     } else if (encodingQueueItem.profile === 'HD Mac M1 MQ') {
@@ -282,9 +286,8 @@ async function encodeItem(encodingQueueItem) {
         '-i', encodingQueueItem.filePath,
         '-map', '0:v:0',
         '-c:v', 'hevc_videotoolbox',
-        '-b:v', '4000k',
-        '-maxrate', '4000k',
-        '-bufsize', '8000k',
+        '-preset', 'slow',
+        '-q:v', crfOverride || '50',
         '-pix_fmt', 'yuv420p',
         '-color_primaries', 'bt709',
         '-color_trc', 'bt709',
@@ -302,7 +305,7 @@ async function encodeItem(encodingQueueItem) {
         '-c:v', 'hevc_videotoolbox',
         '-pix_fmt', 'yuv420p10le',
         '-tag:v', 'hvc1',
-        '-q:v', '65',
+        '-q:v', crfOverride || '65',
         '-color_primaries', 'bt2020', '-color_trc', 'smpte2084', '-colorspace', 'bt2020nc',
         '-vf', fourKScale       
       ];
@@ -314,7 +317,7 @@ async function encodeItem(encodingQueueItem) {
         '-map', '0:v:0',
         '-c:v', 'libx265',
         '-preset', 'slow',
-        '-crf', '19',
+        '-crf', crfOverride || '19',
         '-profile:v', 'main10',
         '-pix_fmt', 'yuv420p10le',
         '-color_primaries', 'bt2020', '-color_trc', 'smpte2084', '-colorspace', 'bt2020nc',
@@ -330,7 +333,7 @@ async function encodeItem(encodingQueueItem) {
         '-map', '0:v',
         '-c:v', 'libx264',
         '-preset', 'slow',
-        '-crf', '18',
+        '-crf', crfOverride || '18',
         '-vf', sdScale,
         '-map', '0:a',
         '-c:a', 'aac'
@@ -395,12 +398,18 @@ async function encodeItem(encodingQueueItem) {
       logStream.end();
       currentFfmpegLog += `\n[ffmpeg exited with code ${code}]\n`;
       currentFfmpegProcess = null;
+      if (code === 0) {
+        console.log(`ffmpeg process completed successfully for ${encodingQueueItem.outName}.`);
+      } else {
+         console.log(`ffmpeg process exited with code ${code}.`);
+      }      
       resolve(code === 0);
     });
     proc.on('error', err => {
       logStream.end();
       currentFfmpegLog += `\n[ffmpeg error: ${err}]\n`;
       currentFfmpegProcess = null;
+      console.log(`ffmpeg process error: ${err}`);
       resolve(false);
     });
   });

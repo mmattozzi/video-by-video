@@ -29,8 +29,35 @@ const startEncodeBtn = document.getElementById('startEncodeBtn');
 const encodingProfileSelect = document.getElementById('encodingProfile');
 const englishOnlyCheckbox = document.getElementById('englishOnlyCheckbox');
 const cropCheckbox = document.getElementById('cropCheckbox');
+const crfInput = document.getElementById('crfInput');
+const crfDisplay = document.getElementById('crfDisplay');
 const screenshotOffsetInput = document.getElementById('screenshotOffset');
 const screenshotOffsetBtn = document.getElementById('screenshotOffsetBtn');
+
+// Default CRF values for each profile
+const defaultCRFValues = {
+  'SD Animation': '21 Lower is better',
+  'HD Mac M1 HQ': '60 (-q:v) Higher is better',
+  'HD Mac M1 MQ': '50 (-q:v) Higher is better',
+  '4K Mac M1 HQ': '65 (-q:v) Higher is better',
+  '4K Software HQ': '19 Lower is better',
+  'HD HQ': '18 Lower is better',
+  'SD': '18 Lower is better'
+};
+
+// Update CRF display when profile changes
+if (encodingProfileSelect) {
+  encodingProfileSelect.addEventListener('change', () => {
+    const profile = encodingProfileSelect.value;
+    const defaultCrf = defaultCRFValues[profile] || 'auto';
+    crfDisplay.textContent = `(default: ${defaultCrf})`;
+    if (crfInput.value === '') {
+      crfInput.placeholder = 'auto';
+    }
+  });
+  // Trigger on load
+  encodingProfileSelect.dispatchEvent(new Event('change'));
+}
 
 if (startEncodeBtn) {
   startEncodeBtn.onclick = async () => {
@@ -57,13 +84,15 @@ if (startEncodeBtn) {
           fullMetadata = meta && meta.fullMetadata ? meta.fullMetadata : null;
           if (meta && meta.crop && fullMetadata) fullMetadata.crop = meta.crop;
         }
+        const crfVal = crfInput && crfInput.value.trim() ? crfInput.value.trim() : null;
         await ipcRenderer.invoke('add-to-encoding-queue', {
           filePath: newPath,
           outName: newName,
           profile,
           englishOnly,
           fullMetadata,
-          applyCrop: cropCheckbox ? !!cropCheckbox.checked : true
+          applyCrop: cropCheckbox ? !!cropCheckbox.checked : true,
+          crfOverride: crfVal
         });
         await ipcRenderer.invoke('start-encoding-queue');
         // Move to next file automatically if not last
@@ -98,13 +127,15 @@ if (queueEncodeBtn) {
         fullMetadata = meta && meta.fullMetadata ? meta.fullMetadata : null;
         if (meta && meta.crop && fullMetadata) fullMetadata.crop = meta.crop;
       }
+      const crfVal = crfInput && crfInput.value.trim() ? crfInput.value.trim() : null;
       await ipcRenderer.invoke('add-to-encoding-queue', {
         filePath: newPath,
         outName: newName,
         profile,
         englishOnly,
         fullMetadata,
-        applyCrop: cropCheckbox ? !!cropCheckbox.checked : true
+        applyCrop: cropCheckbox ? !!cropCheckbox.checked : true,
+        crfOverride: crfVal
       });
       // Move to next file automatically if not last
       if (currentIndex < videoFiles.length - 1) {

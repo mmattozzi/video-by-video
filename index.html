@@ -30,6 +30,7 @@
     #videoPath { font-size: 0.9em; color: #555; margin-top: 1em; }
     #videoMeta { font-size: 0.8em; color: #666; margin-top: 1em; }
     #encodingRow { display: flex; align-items: center; gap: 0.5em; margin-top: 1em; }
+    #advancedEncodingRow { display: flex; align-items: center; gap: 0.5em; margin-top: 0.5em; }
     .subtle { color: #666; font-size: 0.9em; margin-left: 1em; }
   </style>
 </head>
@@ -80,6 +81,11 @@
       <label style="margin-left:1em;display:flex;align-items:center;gap:0.3em;">
         <input type="checkbox" id="cropCheckbox" checked /> Crop Video
       </label>
+    </div>
+    <div id="advancedEncodingRow">
+      <label for="crfInput">CRF (Quality):</label>
+      <input id="crfInput" type="text" placeholder="auto" style="width: 60px;" />
+      <span id="crfDisplay" style="font-size: 0.9em; color: #666;"></span>
     </div>
     <div id="renameResult"></div>
   </div>
