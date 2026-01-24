@@ -30,7 +30,7 @@ function selectSubtitleTracks(profile, fullMetadata, englishOnly = false) {
 
 function selectAudioTracks(profile, fullMetadata, englishOnly = false) {
   var audioTracks = [];
-  console.log(JSON.stringify(fullMetadata, null, 2));
+  // console.log(JSON.stringify(fullMetadata, null, 2));
   if (fullMetadata && fullMetadata.streams) {
     // Find all audio streams
     const audioStreams = fullMetadata.streams.filter(st => st.codec_type.toLowerCase() == 'audio');
@@ -176,6 +176,7 @@ ipcMain.handle('stop-current-encoding', async () => {
   if (currentFfmpegProcess) {
     currentFfmpegProcess.kill('SIGTERM');
     currentFfmpegProcess = null;
+    console.log('Stopped current encoding process.');
   }
   return true;
 });
@@ -303,6 +304,23 @@ async function encodeItem(encodingQueueItem) {
         '-tag:v', 'hvc1',
         '-q:v', '65',
         '-color_primaries', 'bt2020', '-color_trc', 'smpte2084', '-colorspace', 'bt2020nc',
+        '-vf', fourKScale       
+      ];
+    } else if (encodingQueueItem.profile === '4K Software HQ') {
+      // 4K profile for Mac M1: HEVC/h265 with videotoolbox and CQ 55
+      var fourKScale = (applyCrop && cropVal) ? `crop=${cropVal},scale=3840:-2` : "scale=3840:-2";
+      ffmpegArgs = [
+        '-i', encodingQueueItem.filePath,
+        '-map', '0:v:0',
+        '-c:v', 'libx265',
+        '-preset', 'slow',
+        '-crf', '19',
+        '-profile:v', 'main10',
+        '-pix_fmt', 'yuv420p10le',
+        '-color_primaries', 'bt2020', '-color_trc', 'smpte2084', '-colorspace', 'bt2020nc',
+        '-x265-params', 'strong-intra-smoothing=0:rect=0:aq-mode=1:rd=4:psy-rd=1.0:psy-rdoq=3.0:rdoq-level=1:rskip=2',
+        '-tag:v', 'hvc1',
+        '-movflags', '+faststart',       
         '-vf', fourKScale       
       ];
     } else {
