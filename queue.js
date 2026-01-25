@@ -23,6 +23,20 @@ function renderQueue(queue, active) {
   currentFile.className = 'current-item-file';
   currentFile.textContent = `${current.outName} (${current.profile})`;
   currentBox.appendChild(currentFile);
+
+  // Add progress bar
+  const progressBar = document.createElement('div');
+  progressBar.id = 'progressBar';
+  const progressFill = document.createElement('div');
+  progressFill.id = 'progressFill';
+  progressFill.style.width = '0%';
+  progressBar.appendChild(progressFill);
+  const progressText = document.createElement('div');
+  progressText.id = 'progressText';
+  progressText.textContent = '0%';
+  progressBar.appendChild(progressText);
+  currentBox.appendChild(progressBar);
+
   // Move the log textarea into the green box
   const logBox = document.createElement('textarea');
   logBox.id = 'ffmpegLog';
@@ -30,6 +44,7 @@ function renderQueue(queue, active) {
   currentBox.appendChild(logBox);
   if (active) {
     const stopBtn = document.createElement('button');
+    stopBtn.id = 'stopEncodeBtn';
     stopBtn.textContent = 'Stop Encoding';
     stopBtn.onclick = () => {
       ipcRenderer.invoke('stop-current-encoding');
@@ -57,10 +72,30 @@ function updateQueue() {
     // After rendering, update the log box if present
     ipcRenderer.invoke('get-current-ffmpeg-log').then(log => {
       const logBox = document.getElementById('ffmpegLog');
+      const progressFill = document.getElementById('progressFill');
       if (logBox) {
         logBox.value = log || '';
         // Auto-scroll to bottom
         logBox.scrollTop = logBox.scrollHeight;
+      }
+      // Extract current frame and calculate progress
+      if (status.queue && status.queue.length > 0) {
+        const current = status.queue[0];
+        const totalFrames = current.totalFrames;
+        if (totalFrames && totalFrames > 0) {
+          // Parse frame number from log (look for "frame= XXXX")
+          const frameMatch = (log || '').match(/frame=\s*(\d+)/g);
+          if (frameMatch && frameMatch.length > 0) {
+            // Get the last (most recent) frame number
+            const lastMatch = frameMatch[frameMatch.length - 1];
+            const currentFrame = parseInt(lastMatch.replace(/frame=\s*/, ''));
+            const progress = Math.min((currentFrame / totalFrames) * 100, 100);
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            if (progressFill) progressFill.style.width = progress.toFixed(1) + '%';
+            if (progressText) progressText.textContent = progress.toFixed(1) + '%';
+          }
+        }
       }
     });
   });

@@ -83,6 +83,7 @@ if (startEncodeBtn) {
           const meta = await ipcRenderer.invoke('get-video-meta', newPath);
           fullMetadata = meta && meta.fullMetadata ? meta.fullMetadata : null;
           if (meta && meta.crop && fullMetadata) fullMetadata.crop = meta.crop;
+          if (meta && meta.totalFrames) currentTotalFrames = meta.totalFrames;
         }
         const crfVal = crfInput && crfInput.value.trim() ? crfInput.value.trim() : null;
         await ipcRenderer.invoke('add-to-encoding-queue', {
@@ -92,7 +93,8 @@ if (startEncodeBtn) {
           englishOnly,
           fullMetadata,
           applyCrop: cropCheckbox ? !!cropCheckbox.checked : true,
-          crfOverride: crfVal
+          crfOverride: crfVal,
+          totalFrames: currentTotalFrames
         });
         await ipcRenderer.invoke('start-encoding-queue');
         // Move to next file automatically if not last
@@ -126,6 +128,7 @@ if (queueEncodeBtn) {
         const meta = await ipcRenderer.invoke('get-video-meta', newPath);
         fullMetadata = meta && meta.fullMetadata ? meta.fullMetadata : null;
         if (meta && meta.crop && fullMetadata) fullMetadata.crop = meta.crop;
+        if (meta && meta.totalFrames) currentTotalFrames = meta.totalFrames;
       }
       const crfVal = crfInput && crfInput.value.trim() ? crfInput.value.trim() : null;
       await ipcRenderer.invoke('add-to-encoding-queue', {
@@ -135,7 +138,8 @@ if (queueEncodeBtn) {
         englishOnly,
         fullMetadata,
         applyCrop: cropCheckbox ? !!cropCheckbox.checked : true,
-        crfOverride: crfVal
+        crfOverride: crfVal,
+        totalFrames: currentTotalFrames
       });
       // Move to next file automatically if not last
       if (currentIndex < videoFiles.length - 1) {
@@ -161,7 +165,8 @@ let screenshotsOffset = 0; // in seconds
 let videoFiles = [];
 let currentIndex = 0;
 let baseName = '';
-let currentVideoMetadata = null; 
+let currentVideoMetadata = null;
+let currentTotalFrames = null; 
 
 function updateUI() {
   if (videoFiles.length === 0) {
@@ -189,6 +194,7 @@ function updateUI() {
     if (meta && meta.fullMetadata) {
       currentVideoMetadata = meta.fullMetadata;
       if (meta.crop) currentVideoMetadata.crop = meta.crop;
+      if (meta.totalFrames) currentTotalFrames = meta.totalFrames;
     }
     if (videoMetaDiv) {
       if (meta && meta.duration && meta.resolution && meta.fullMetadata.crop) {

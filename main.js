@@ -469,14 +469,23 @@ ipcMain.handle('get-video-meta', async (event, videoPath) => {
       } else {
         durationStr = `${m}:${s.toString().padStart(2, '0')}`;
       }
-      // Get resolution from first video stream
+      // Get resolution and total frames from first video stream
       let res = '';
+      let totalFrames = null;
       if (metadata.streams && metadata.streams.length) {
         const vStream = metadata.streams.find(st => st.codec_type === 'video');
         if (vStream && vStream.width && vStream.height) {
           res = `${vStream.width}x${vStream.height}`;
         }
-      }
+        // Calculate total frames from duration and fps
+        if (vStream && vStream.r_frame_rate) {
+          const fpsParts = vStream.r_frame_rate.split('/');
+          const fps = fpsParts.length === 2 ? 
+            parseFloat(fpsParts[0]) / parseFloat(fpsParts[1]) : 
+            parseFloat(vStream.r_frame_rate);
+          totalFrames = Math.floor(durationSec * fps);
+        }
+      }      
 
       // Run cropdetect for a few seconds to get crop values
       const ffmpegBin = ffmpegPath;
@@ -507,10 +516,10 @@ ipcMain.handle('get-video-meta', async (event, videoPath) => {
           console.log(`Found unlikely crop string, ignoring.`);
         }
         metadata.crop = crop;
-        resolve({ duration: durationStr, resolution: res, fullMetadata: metadata });
+        resolve({ duration: durationStr, resolution: res, fullMetadata: metadata, totalFrames });
       });
       proc.on('error', err => {
-        resolve({ duration: durationStr, resolution: res, fullMetadata: metadata });
+        resolve({ duration: durationStr, resolution: res, fullMetadata: metadata, totalFrames });
       });
     });
   });
