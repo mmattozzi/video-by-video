@@ -106,17 +106,59 @@ let currentFfmpegLog = '';
 
 ffmpeg.setFfmpegPath(ffmpegPath);
 
+// Keep a global reference of the window object
+let win;
+const stateFilePath = path.join(app.getPath('userData'), 'window-state.json');
+
+function saveWindowState() {
+  if (!win) return;
+  const bounds = win.getBounds();
+  try {
+    fs.writeFileSync(stateFilePath, JSON.stringify(bounds));
+  } catch (err) {
+    console.error('Failed to save window state:', err);
+  }
+}
+
+function loadWindowState() {
+  try {
+    if (fs.existsSync(stateFilePath)) {
+      const data = fs.readFileSync(stateFilePath, 'utf8');
+      return JSON.parse(data);
+    }
+  } catch (err) {
+    console.error('Failed to load window state:', err);
+  }
+  return { width: 900, height: 700 }; // default
+}
+
 function createWindow() {
-  const win = new BrowserWindow({
-    width: 900,
-    height: 700,
+  const windowState = loadWindowState();
+  win = new BrowserWindow({
+    x: windowState.x,
+    y: windowState.y,
+    width: windowState.width,
+    height: windowState.height,
     webPreferences: {
       nodeIntegration: true,
       contextIsolation: false,
     },
   });
   win.loadFile('index.html');
+
+  win.on('resize', saveWindowState);
+  win.on('move', saveWindowState);
 }
+
+ipcMain.handle('resize-window', (event, { width, height }) => {
+  if (win) {
+    const [currentWidth, currentHeight] = win.getSize();
+    const newWidth = width || currentWidth;
+    const newHeight = height || currentHeight;
+    win.setSize(newWidth, newHeight, true); // true for animate
+    saveWindowState();
+  }
+});
 
 app.whenReady().then(createWindow);
 
@@ -266,7 +308,7 @@ async function encodeItem(encodingQueueItem) {
         '-color_trc', 'bt709',
         '-colorspace', 'bt709',
         '-tag:v', 'hvc1',
-        '-vf', hdScale        
+        '-vf', hdScale
       ];
     } else if (encodingQueueItem.profile === 'HD HQ') {
       // HD profile for non-Mac M1: H.264 with libx264
@@ -293,7 +335,7 @@ async function encodeItem(encodingQueueItem) {
         '-color_trc', 'bt709',
         '-colorspace', 'bt709',
         '-tag:v', 'hvc1',
-        '-vf', hdScale        
+        '-vf', hdScale
       ];
     } else if (encodingQueueItem.profile === '4K Mac M1 HQ') {
       // 4K profile for Mac M1: HEVC/h265 with videotoolbox and CQ 55
@@ -307,7 +349,7 @@ async function encodeItem(encodingQueueItem) {
         '-tag:v', 'hvc1',
         '-q:v', crfOverride || '65',
         '-color_primaries', 'bt2020', '-color_trc', 'smpte2084', '-colorspace', 'bt2020nc',
-        '-vf', fourKScale       
+        '-vf', fourKScale
       ];
     } else if (encodingQueueItem.profile === '4K Software HQ') {
       // 4K profile for Mac M1: HEVC/h265 with videotoolbox and CQ 55
@@ -323,8 +365,8 @@ async function encodeItem(encodingQueueItem) {
         '-color_primaries', 'bt2020', '-color_trc', 'smpte2084', '-colorspace', 'bt2020nc',
         '-x265-params', 'strong-intra-smoothing=0:rect=0:aq-mode=1:rd=4:psy-rd=1.0:psy-rdoq=3.0:rdoq-level=1:rskip=2',
         '-tag:v', 'hvc1',
-        '-movflags', '+faststart',       
-        '-vf', fourKScale       
+        '-movflags', '+faststart',
+        '-vf', fourKScale
       ];
     } else {
       // Default SD profile
@@ -344,7 +386,7 @@ async function encodeItem(encodingQueueItem) {
 
     // Include all audio tracks for HD & better profiles
     if (encodingQueueItem.profile.startsWith('HD') || encodingQueueItem.profile.startsWith('4K')) {
-      if (audioStreams.length > 0) {        
+      if (audioStreams.length > 0) {
         audioStreams.forEach(at => {
           ffmpegArgs.push('-map', `0:${at.index}`);
           ffmpegArgs.push(`-c:${currentStreamIndex++}`, 'copy');
@@ -353,9 +395,9 @@ async function encodeItem(encodingQueueItem) {
           if (at.isDefault) {
             if (at.codec !== 'aac' && at.codec !== 'ac3') {
               ffmpegArgs.push('-map', `0:${at.index}`);
-              ffmpegArgs.push(`-filter:${currentStreamIndex}`, 'aresample=async=1:first_pts=0'); 
+              ffmpegArgs.push(`-filter:${currentStreamIndex}`, 'aresample=async=1:first_pts=0');
               ffmpegArgs.push(`-c:${currentStreamIndex}`, 'aac');
-              ffmpegArgs.push(`-b:${currentStreamIndex++}`, '192k');              
+              ffmpegArgs.push(`-b:${currentStreamIndex++}`, '192k');
             }
           }
         });
@@ -363,11 +405,11 @@ async function encodeItem(encodingQueueItem) {
     }
 
     // Include subtitle tracks if any
-    if (! encodingQueueItem.profile.startsWith('SD') && subtitleTrackIndexes.length > 0) {
+    if (!encodingQueueItem.profile.startsWith('SD') && subtitleTrackIndexes.length > 0) {
       subtitleTrackIndexes.forEach(idx => {
         ffmpegArgs.push('-map', `0:${idx}`);
         ffmpegArgs.push(`-c:${currentStreamIndex++}`, 'copy');
-      });      
+      });
     }
 
     if (encodingQueueItem.profile == "SD Animation") {
@@ -401,8 +443,8 @@ async function encodeItem(encodingQueueItem) {
       if (code === 0) {
         console.log(`ffmpeg process completed successfully for ${encodingQueueItem.outName}.`);
       } else {
-         console.log(`ffmpeg process exited with code ${code}.`);
-      }      
+        console.log(`ffmpeg process exited with code ${code}.`);
+      }
       resolve(code === 0);
     });
     proc.on('error', err => {
@@ -480,12 +522,12 @@ ipcMain.handle('get-video-meta', async (event, videoPath) => {
         // Calculate total frames from duration and fps
         if (vStream && vStream.r_frame_rate) {
           const fpsParts = vStream.r_frame_rate.split('/');
-          const fps = fpsParts.length === 2 ? 
-            parseFloat(fpsParts[0]) / parseFloat(fpsParts[1]) : 
+          const fps = fpsParts.length === 2 ?
+            parseFloat(fpsParts[0]) / parseFloat(fpsParts[1]) :
             parseFloat(vStream.r_frame_rate);
           totalFrames = Math.floor(durationSec * fps);
         }
-      }      
+      }
 
       // Run cropdetect for a few seconds to get crop values
       const ffmpegBin = ffmpegPath;

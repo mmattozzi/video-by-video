@@ -4,75 +4,109 @@
   <meta charset="UTF-8">
   <title>Encoding Queue</title>
   <style>
-    body { font-family: sans-serif; margin: 2em; }
-      #queueList { margin-top: 1em; }
-      .queue-item { margin-bottom: 0.5em; padding: 0.5em; border: 1px solid #ccc; border-radius: 4px; }
-      .current-item-box {
-        background: #e6ffe6;
-        border: 2px solid #8fd88f;
-        border-radius: 6px;
-        padding: 1em;
-        margin-bottom: 1.5em;
-      }
-      .current-item-title {
-        font-weight: bold;
-        margin-bottom: 0.5em;
-        font-size: 1.1em;
-        background: #b2e6b2;
-        border-top-left-radius: 4px;
-        border-top-right-radius: 4px;
-        padding: 0.4em 1em;
-        margin: -1em -1em 1em -1em;
-        border-bottom: 1px solid #8fd88f;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.03);
-        letter-spacing: 0.5px;
-      }
-      .current-item-file {
-        font-size: 1em;
-        margin-bottom: 0.5em;
-        color: #333;
-      }
-      #progressBar {
-        width: 100%;
-        height: 20px;
-        background: #ddd;
-        border: 1px solid #b2e6b2;
-        border-radius: 4px;
-        overflow: visible;
-        margin-bottom: 0.5em;
-        position: relative;
-      }
-      #progressFill {
-        height: 100%;
-        background: #4caf50;
-      }
-      #progressText {
-        position: absolute;
-        right: 4px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #333;
-        font-size: 0.75em;
-        font-weight: bold;
-      }
-      .current-item-box > textarea {
-        width: 100%;
-        height: 200px;
-        resize: none;
-        font-family: monospace;
-        font-size: 0.95em;
-        background: #f8fff8;
-        border: 1px solid #b2e6b2;
-        border-radius: 4px;
-        margin-bottom: 0.5em;
-        box-sizing: border-box;
-      }
-      .current-item-box > button {
-        display: block;
-        width: 100%;
-        padding: 0.5em;
-        margin-top: 0.5em;
-      }
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f5f5f7;
+      color: #333;
+    }
+    button {
+      font-family: inherit;
+      padding: 8px 16px;
+      border: none;
+      border-radius: 6px;
+      background: #007AFF;
+      color: white;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 0.95em;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #0051D5;
+    }
+    button:active {
+      background: #003DA1;
+    }
+    #queueList { margin-top: 1.5em; }
+    .queue-item {
+      margin-bottom: 10px;
+      padding: 12px;
+      border: 1px solid #d2d2d7;
+      border-radius: 8px;
+      background: white;
+      font-size: 0.95em;
+      color: #666;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+    }
+    .current-item-box {
+      background: white;
+      border: 1px solid #d2d2d7;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 1.5em;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+    .current-item-title {
+      font-weight: 600;
+      margin-bottom: 0.8em;
+      font-size: 1em;
+      color: #007AFF;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+      font-size: 0.85em;
+    }
+    .current-item-file {
+      font-size: 0.95em;
+      margin-bottom: 1em;
+      color: #333;
+      font-weight: 500;
+    }
+    #progressBar {
+      width: 100%;
+      height: 6px;
+      background: #e8e8eb;
+      border-radius: 3px;
+      overflow: visible;
+      margin-bottom: 0.8em;
+      position: relative;
+    }
+    #progressFill {
+      height: 100%;
+      background: linear-gradient(90deg, #34C759, #30B0C0);
+      border-radius: 3px;
+      transition: width 0.1s linear;
+    }
+    #progressText {
+      position: absolute;
+      right: 0px;
+      top: -20px;
+      color: #666;
+      font-size: 0.8em;
+      font-weight: 500;
+    }
+    .current-item-box > textarea {
+      width: 100%;
+      height: 200px;
+      resize: none;
+      font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+      font-size: 0.85em;
+      background: #f9f9fb;
+      border: 1px solid #d2d2d7;
+      border-radius: 6px;
+      margin-bottom: 0.8em;
+      color: #333;
+      padding: 8px;
+      line-height: 1.4;
+    }
+    .current-item-box > button {
+      display: block;
+      width: 100%;
+      padding: 8px;
+      margin-top: 0.8em;
+    }
   </style>
 </head>
 <body>

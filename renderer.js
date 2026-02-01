@@ -166,7 +166,7 @@ let videoFiles = [];
 let currentIndex = 0;
 let baseName = '';
 let currentVideoMetadata = null;
-let currentTotalFrames = null; 
+let currentTotalFrames = null;
 
 function updateUI() {
   if (videoFiles.length === 0) {
@@ -226,6 +226,12 @@ function updateUI() {
     const origName = videoPath.split(/[\/]/).pop().replace(/\.[^/.]+$/, "");
     newNameInput.value = baseName ? `${baseName}` : origName;
     renameResult.textContent = '';
+
+    // Resize window to fit content
+    setTimeout(() => {
+      const height = document.body.scrollHeight + 40; // Add some padding
+      ipcRenderer.invoke('resize-window', { height });
+    }, 100);
   });
 }
 
@@ -270,7 +276,7 @@ renameBtn.onclick = async () => {
   if (newPath) {
     renameResult.textContent = 'Renamed to: ' + newPath;
     videoFiles[currentIndex] = newPath;
-    screenshotsOffset = 0;    
+    screenshotsOffset = 0;
     // Move to next file automatically if not last
     if (currentIndex < videoFiles.length - 1) {
       currentIndex++;
@@ -283,7 +289,7 @@ renameBtn.onclick = async () => {
 };
 
 // Pressing Enter in the rename input triggers the rename button
-newNameInput.addEventListener('keydown', function(event) {
+newNameInput.addEventListener('keydown', function (event) {
   if (event.key === 'Enter') {
     event.preventDefault();
     renameBtn.click();
