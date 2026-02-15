@@ -258,7 +258,8 @@ async function encodeItem(encodingQueueItem) {
     const ext = path.extname(encodingQueueItem.filePath);
     const completedDir = path.join(dir, 'Completed');
     if (!fs.existsSync(completedDir)) fs.mkdirSync(completedDir);
-    const outPath = path.join(completedDir, encodingQueueItem.outName + (encodingQueueItem.profile.startsWith('SD') ? '.mp4' : '.mkv'));
+    // const outPath = path.join(completedDir, encodingQueueItem.outName + (encodingQueueItem.profile.startsWith('SD') ? '.mp4' : '.mkv'));
+    const outPath = path.join(completedDir, encodingQueueItem.outName + '.mkv');
     const logPath = path.join(completedDir, 'ffmpeg.log');
     const logStream = fs.createWriteStream(logPath, { flags: 'a' });
 
@@ -405,11 +406,12 @@ async function encodeItem(encodingQueueItem) {
     }
 
     // Include subtitle tracks if any
-    if (!encodingQueueItem.profile.startsWith('SD') && subtitleTrackIndexes.length > 0) {
+    if (subtitleTrackIndexes.length > 0) {
       subtitleTrackIndexes.forEach(idx => {
         ffmpegArgs.push('-map', `0:${idx}`);
-        ffmpegArgs.push(`-c:${currentStreamIndex++}`, 'copy');
       });
+      // Force copy for ALL subtitle streams to avoid bitmap-to-text conversion errors
+      ffmpegArgs.push('-c:s', 'copy');
     }
 
     if (encodingQueueItem.profile == "SD Animation") {
@@ -438,13 +440,14 @@ async function encodeItem(encodingQueueItem) {
     });
     proc.on('close', code => {
       logStream.end();
-      currentFfmpegLog += `\n[ffmpeg exited with code ${code}]\n`;
-      currentFfmpegProcess = null;
       if (code === 0) {
+        currentFfmpegLog += `\n[ffmpeg completed successfully]\n`;
         console.log(`ffmpeg process completed successfully for ${encodingQueueItem.outName}.`);
       } else {
+        currentFfmpegLog += `\n[ffmpeg failed with exit code ${code}. Check the log above for errors.]\n`;
         console.log(`ffmpeg process exited with code ${code}.`);
       }
+      currentFfmpegProcess = null;
       resolve(code === 0);
     });
     proc.on('error', err => {
