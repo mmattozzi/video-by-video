@@ -311,6 +311,25 @@ async function encodeItem(encodingQueueItem) {
         '-tag:v', 'hvc1',
         '-vf', hdScale
       ];
+    } else if (encodingQueueItem.profile === 'HD Mac M1 10-bit HQ') {
+      // HD profile for Mac M1 with 10-bit depth: HEVC/h265 with videotoolbox and CQ 65
+      // Uses BT.709 SDR color metadata (not HDR) since source is 8-bit SDR.
+      // HDR metadata (bt2020/smpte2084) on an SDR source causes a red tint in players.
+      ffmpegArgs = [
+        '-fflags', '+genpts',
+        '-i', encodingQueueItem.filePath,
+        '-map', '0:v:0',
+        '-c:v', 'hevc_videotoolbox',
+        '-profile:v', 'main10',
+        '-preset', 'slow',
+        '-q:v', crfOverride || '65',
+        '-pix_fmt', 'p010le',
+        '-color_primaries', 'bt709',
+        '-color_trc', 'bt709',
+        '-colorspace', 'bt709',
+        '-tag:v', 'hvc1',
+        '-vf', hdScale
+      ];
     } else if (encodingQueueItem.profile === 'HD HQ') {
       // HD profile for non-Mac M1: H.264 with libx264
       ffmpegArgs = [
@@ -346,7 +365,9 @@ async function encodeItem(encodingQueueItem) {
         '-i', encodingQueueItem.filePath,
         '-map', '0:v:0',
         '-c:v', 'hevc_videotoolbox',
-        '-pix_fmt', 'yuv420p10le',
+        '-profile:v', 'main10',
+        '-pix_fmt', 'p010le',
+        '-color_range', 'tv',
         '-tag:v', 'hvc1',
         '-q:v', crfOverride || '65',
         '-color_primaries', 'bt2020', '-color_trc', 'smpte2084', '-colorspace', 'bt2020nc',

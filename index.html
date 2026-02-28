@@ -1,10 +1,14 @@
 <!DOCTYPE html>
 <html>
+
 <head>
   <meta charset="UTF-8">
   <title>Video By Video</title>
   <style>
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
       margin: 0;
@@ -12,10 +16,14 @@
       background: #f5f5f7;
       color: #333;
     }
-    button, input, select {
+
+    button,
+    input,
+    select {
       font-family: inherit;
       font-size: 0.95em;
     }
+
     button {
       padding: 6px 14px;
       border: none;
@@ -26,24 +34,31 @@
       font-weight: 500;
       transition: background 0.2s;
     }
+
     button:hover {
       background: #0051D5;
     }
+
     button:active {
       background: #003DA1;
     }
-    input, select {
+
+    input,
+    select {
       padding: 6px 10px;
       border: 1px solid #d2d2d7;
       border-radius: 6px;
       background: white;
       color: #333;
     }
-    input:focus, select:focus {
+
+    input:focus,
+    select:focus {
       outline: none;
       border-color: #007AFF;
       box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.1);
     }
+
     #screenshots {
       margin-top: 1.5em;
       display: grid;
@@ -52,6 +67,7 @@
       gap: 12px;
       width: 100%;
     }
+
     #screenshots img {
       width: 100%;
       height: auto;
@@ -62,28 +78,116 @@
       border-radius: 8px;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
     }
-    #rename-section { margin-top: 2em; }
-    #file-nav { margin-top: 1.5em; display: flex; gap: 0.5em; align-items: center; }
-    #baseNameDialog { margin-bottom: 1.5em; margin-top: 2em; display: flex; gap: 1em; flex-wrap: wrap; align-items: center; }
-    #rename-row { display: flex; gap: 0.5em; flex-wrap: wrap; align-items: center; }
-    #newName { flex: 1 1 auto; min-width: 200px; }
-    #renameBtn { flex: 0 0 auto; white-space: nowrap; }
-    #videoPath { font-size: 0.95em; color: #666; margin-top: 1em; }
-    #videoMeta { font-size: 0.85em; color: #999; margin-top: 0.5em; }
-    #encodingRow { display: flex; align-items: center; gap: 1em; margin-top: 1.5em; flex-wrap: wrap; }
-    #advancedEncodingRow { display: flex; align-items: center; gap: 1em; margin-top: 1em; flex-wrap: wrap; }
-    #encodingProfile { min-width: 250px; }
-    .subtle { color: #999; font-size: 0.85em; margin-left: 0.5em; font-weight: 400; }
-    label { display: flex; align-items: center; gap: 0.5em; font-size: 0.95em; }
-    input[type="checkbox"] { width: 16px; height: 16px; cursor: pointer; }
-    #crfInput { width: 70px; }
-    #crfDisplay { font-size: 0.85em; color: #999; }
-    #renameResult { margin-top: 1em; font-size: 0.9em; }
+
+    #rename-section {
+      margin-top: 2em;
+    }
+
+    #file-nav {
+      margin-top: 1.5em;
+      display: flex;
+      gap: 0.5em;
+      align-items: center;
+    }
+
+    #baseNameDialog {
+      margin-bottom: 1.5em;
+      margin-top: 2em;
+      display: flex;
+      gap: 1em;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    #rename-row {
+      display: flex;
+      gap: 0.5em;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    #newName {
+      flex: 1 1 auto;
+      min-width: 200px;
+    }
+
+    #renameBtn {
+      flex: 0 0 auto;
+      white-space: nowrap;
+    }
+
+    #videoPath {
+      font-size: 0.95em;
+      color: #666;
+      margin-top: 1em;
+    }
+
+    #videoMeta {
+      font-size: 0.85em;
+      color: #999;
+      margin-top: 0.5em;
+    }
+
+    #encodingRow {
+      display: flex;
+      align-items: center;
+      gap: 1em;
+      margin-top: 1.5em;
+      flex-wrap: wrap;
+    }
+
+    #advancedEncodingRow {
+      display: flex;
+      align-items: center;
+      gap: 1em;
+      margin-top: 1em;
+      flex-wrap: wrap;
+    }
+
+    #encodingProfile {
+      min-width: 250px;
+    }
+
+    .subtle {
+      color: #999;
+      font-size: 0.85em;
+      margin-left: 0.5em;
+      font-weight: 400;
+    }
+
+    label {
+      display: flex;
+      align-items: center;
+      gap: 0.5em;
+      font-size: 0.95em;
+    }
+
+    input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      cursor: pointer;
+    }
+
+    #crfInput {
+      width: 70px;
+    }
+
+    #crfDisplay {
+      font-size: 0.85em;
+      color: #999;
+    }
+
+    #renameResult {
+      margin-top: 1em;
+      font-size: 0.9em;
+    }
   </style>
 </head>
+
 <body>
-  
-  <button id="openBtn">Open Video Files</button><span class="subtle">(Select multiple files for maximum efficiency!)</span>
+
+  <button id="openBtn">Open Video Files</button><span class="subtle">(Select multiple files for maximum
+    efficiency!)</span>
   <div id="file-nav" style="display:none;">
     <span id="fileIndex"></span>
     <button id="prevBtn">Prev</button>
@@ -104,14 +208,15 @@
   <div id="rename-section" style="display:none;">
     <div id="rename-row">
       <input id="newName" placeholder="New file name (no extension)" />
-  <button id="renameBtn">Rename Video</button>
-  
-  <button id="playBtn">Play in VLC</button>
+      <button id="renameBtn">Rename Video</button>
+
+      <button id="playBtn">Play in VLC</button>
     </div>
     <div id="encodingRow">
       <label for="encodingProfile">Encoding Profile:</label>
       <select id="encodingProfile">
         <option value="HD Mac M1 HQ">HD Mac M1 HEVC High Quality</option>
+        <option value="HD Mac M1 10-bit HQ">HD Mac M1 HEVC 10-bit High Quality</option>
         <option value="HD Mac M1 MQ">HD Mac M1 HEVC Medium Quality</option>
         <option value="4K Mac M1 HQ">4K Mac M1 HEVC High Quality</option>
         <option value="4K Software HQ">4K Software HEVC High Quality</option>
@@ -119,9 +224,9 @@
         <option value="SD">SD</option>
         <option value="SD Animation">SD Animation</option>
       </select>
-  <button id="queueEncodeBtn">Queue Encode</button>
-  <button id="startEncodeBtn">Start Encode</button>
-  <button id="openQueueBtn" type="button">Show Queue</button>
+      <button id="queueEncodeBtn">Queue Encode</button>
+      <button id="startEncodeBtn">Start Encode</button>
+      <button id="openQueueBtn" type="button">Show Queue</button>
       <label style="margin-left:1em;display:flex;align-items:center;gap:0.3em;">
         <input type="checkbox" id="englishOnlyCheckbox" /> English Audio Only
       </label>
@@ -138,4 +243,5 @@
   </div>
   <script src="renderer.js"></script>
 </body>
+
 </html>
