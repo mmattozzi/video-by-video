@@ -181,6 +181,23 @@
       margin-top: 1em;
       font-size: 0.9em;
     }
+
+    body.drag-over::after {
+      content: 'Drop video files here';
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.4em;
+      font-weight: 600;
+      color: #007AFF;
+      background: rgba(0, 122, 255, 0.08);
+      border: 3px dashed #007AFF;
+      border-radius: 12px;
+      pointer-events: none;
+      z-index: 9999;
+    }
   </style>
 </head>
 

@@ -247,6 +247,34 @@ openBtn.onclick = async () => {
   updateUI();
 };
 
+// Drag-and-drop support
+document.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  document.body.classList.add('drag-over');
+});
+
+document.addEventListener('dragleave', (e) => {
+  // Only remove highlight when leaving the window entirely
+  if (e.clientX === 0 && e.clientY === 0) {
+    document.body.classList.remove('drag-over');
+  }
+});
+
+document.addEventListener('drop', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  document.body.classList.remove('drag-over');
+  const droppedFiles = Array.from(e.dataTransfer.files)
+    .map(f => f.path)
+    .filter(p => p && p.length > 0);
+  if (droppedFiles.length === 0) return;
+  videoFiles = droppedFiles;
+  currentIndex = 0;
+  screenshotsOffset = 0;
+  updateUI();
+});
+
 
 setBaseNameBtn.onclick = () => {
   baseName = baseNameInput.value.trim();
