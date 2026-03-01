@@ -330,6 +330,21 @@ async function encodeItem(encodingQueueItem) {
         '-tag:v', 'hvc1',
         '-vf', hdScale
       ];
+    } else if (encodingQueueItem.profile === 'HD Mac M1 10-bit HQ (for HDR Sources)') {
+      // HD 10-bit profile for HDR source material. Color metadata (primaries, transfer curve,
+      // colorspace) is intentionally NOT overridden so ffmpeg inherits it from the source stream.
+      ffmpegArgs = [
+        '-fflags', '+genpts',
+        '-i', encodingQueueItem.filePath,
+        '-map', '0:v:0',
+        '-c:v', 'hevc_videotoolbox',
+        '-profile:v', 'main10',
+        '-preset', 'slow',
+        '-q:v', crfOverride || '65',
+        '-pix_fmt', 'p010le',
+        '-tag:v', 'hvc1',
+        '-vf', hdScale
+      ];
     } else if (encodingQueueItem.profile === 'HD HQ') {
       // HD profile for non-Mac M1: H.264 with libx264
       ffmpegArgs = [

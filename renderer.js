@@ -39,6 +39,7 @@ const defaultCRFValues = {
   'SD Animation': '21 Lower is better',
   'HD Mac M1 HQ': '60 (-q:v) Higher is better',
   'HD Mac M1 10-bit HQ': '65 (-q:v) Higher is better',
+  'HD Mac M1 10-bit HQ (for HDR Sources)': '65 (-q:v) Higher is better',
   'HD Mac M1 MQ': '50 (-q:v) Higher is better',
   '4K Mac M1 HQ': '65 (-q:v) Higher is better',
   '4K Software HQ': '19 Lower is better',
