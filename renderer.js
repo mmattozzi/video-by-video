@@ -53,9 +53,8 @@ if (encodingProfileSelect) {
     const profile = encodingProfileSelect.value;
     const defaultCrf = defaultCRFValues[profile] || 'auto';
     crfDisplay.textContent = `(default: ${defaultCrf})`;
-    if (crfInput.value === '') {
-      crfInput.placeholder = 'auto';
-    }
+    crfInput.value = '';
+    crfInput.placeholder = 'auto';
   });
   // Trigger on load
   encodingProfileSelect.dispatchEvent(new Event('change'));
